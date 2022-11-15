@@ -21,17 +21,20 @@ namespace openxr
 #endif
     public class HandTrackingFeature : OpenXRFeature
     {
-        public enum Hand_Index { L, R };
         public const string featureId = "com.joemarshall.handtracking";
+
+        /*XrResult xrGetInstanceProcAddr(
+            XrInstance                                  instance,
+            const char*                                 name,
+            PFN_xrVoidFunction*                         function);*/
+        internal delegate int Type_xrGetInstanceProcAddr(ulong instance, [MarshalAs(UnmanagedType.LPStr)] string name, out IntPtr function);
+
+        public enum Hand_Index { L, R };
         ulong instance_;
         ulong session_;
 
-        Type_xrGetInstanceProcAddr mOldProc;
-        Type_xrWaitFrame mOldWaitFrame;
-        long frame_time = 0;
         ulong handle_left = 0;
         ulong handle_right = 0;
-        List<Delegate> callbacks = new List<Delegate>();
         static Dictionary<XrHandTrackingMeshFB, HandMeshArrays> hand_mesh_pinned_arrays = new Dictionary<XrHandTrackingMeshFB, HandMeshArrays>();
 
         public HandTrackingFeature()
@@ -44,21 +47,9 @@ namespace openxr
             Debug.Log("delete");
         }
 
-        // static void ClearStatic()
-        // {
-        //     mOldProc = null;
-        //     mOldWaitFrame = null;
-        //     frame_time = 0;
-        //     handle_left = 0;
-        //     handle_right = 0;
-        //     callbacks.Clear();
-        //     hand_mesh_pinned_arrays.Clear();
-        // }
-
         Vector3 PosToUnity(XrVector3f pos)
         {
             return new Vector3(pos.x, pos.y, -pos.z);
-
         }
 
         Quaternion OrientationToUnity(XrVector4f ori)
@@ -88,11 +79,6 @@ namespace openxr
         }
 
         // get the address of the hand tracking functions using: OpenXRFeature.xrGetInstanceProcAddr
-        /*XrResult xrGetInstanceProcAddr(
-            XrInstance                                  instance,
-            const char*                                 name,
-            PFN_xrVoidFunction*                         function);*/
-        internal delegate int Type_xrGetInstanceProcAddr(ulong instance, [MarshalAs(UnmanagedType.LPStr)] string name, out IntPtr function);
 
         /*XrResult xrCreateHandTrackerEXT(
             XrSession                                   session,
@@ -110,44 +96,6 @@ namespace openxr
             const XrHandJointsLocateInfoEXT*            locateInfo,
             XrHandJointLocationsEXT*                    locations);*/
         internal delegate int Type_xrLocateHandJointsEXT(ulong tracker, in XrHandJointsLocateInfoEXT locateInfoEXT, ref XrHandJointLocationsEXT locations);
-
-        /*XrResult xrWaitFrame(
-            XrSession                                   session,
-            const XrFrameWaitInfo*                      frameWaitInfo,
-            XrFrameState*                               frameState);*/
-        internal delegate int Type_xrWaitFrame(ulong session, in XrFrameWaitInfo waitInfo, ref XrFrameState state);
-
-        /*
-        typedef struct XrFrameWaitInfo {
-            XrStructureType    type;
-            const void*        next;
-        } XrFrameWaitInfo;
-        */
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct XrFrameWaitInfo
-        {
-            int stype;
-            IntPtr next;
-        };
-
-        /*typedef struct XrFrameState {
-            XrStructureType    type;
-            void*              next;
-            XrTime             predictedDisplayTime;
-            XrDuration         predictedDisplayPeriod;
-            XrBool32           shouldRender;
-        } XrFrameState;*/
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct XrFrameState
-        {
-            int stype;
-            IntPtr next;
-            public long predictedDisplayTime;
-            public long predictedDisplayPeriod;
-            public int shouldRender;
-        }
-
-
 
         /*typedef struct XrHandJointsLocateInfoEXT {
             XrStructureType    type;
@@ -250,76 +198,10 @@ namespace openxr
             int handJointSet;
         }
 
-        protected IntPtr GetCallback<T>(T functionAddr) where T : System.Delegate
-        {
-            callbacks.Add(functionAddr); // store it so it doesn't get garbage collected
-            IntPtr fp = Marshal.GetFunctionPointerForDelegate(functionAddr);
-            return fp;
-        }
-
-        protected override IntPtr HookGetInstanceProcAddr(IntPtr func)
-        {
-            mOldProc = (Type_xrGetInstanceProcAddr)Marshal.GetDelegateForFunctionPointer(xrGetInstanceProcAddr, typeof(Type_xrGetInstanceProcAddr));
-
-            return GetCallback<Type_xrGetInstanceProcAddr>(new Type_xrGetInstanceProcAddr(xrGetInstanceProcAddr_HOOK_STATIC));
-        }
-
-
-        public T GetInstanceProc<T>(string procName) where T : System.Delegate
-        {
-            if (xrGetInstanceProcAddr == null)
-            {
-                return null;
-            }
-            IntPtr fp = IntPtr.Zero;
-            if (mOldProc == null)
-            {
-                return null;
-            }
-            int retVal = mOldProc(instance_, procName, out fp);
-            if (retVal == 0)
-            {
-                return (T)Marshal.GetDelegateForFunctionPointer(fp, typeof(T));
-            }
-            else
-            {
-                return null;
-            }
-        }
-        [MonoPInvokeCallback(typeof(Type_xrGetInstanceProcAddr))]
-        int xrGetInstanceProcAddr_HOOK_STATIC(ulong instance, string name, out IntPtr function)
-        {
-            return xrGetInstanceProcAddr_HOOK(instance, name, out function);
-        }
-
-        int xrGetInstanceProcAddr_HOOK(ulong instance, string name, out IntPtr function)
-        {
-            if (name == "xrWaitFrame")
-            {
-                IntPtr fp;
-                int retVal = mOldProc(instance, name, out fp);
-                mOldWaitFrame = (Type_xrWaitFrame)Marshal.GetDelegateForFunctionPointer(fp, typeof(Type_xrWaitFrame));
-                function = GetCallback<Type_xrWaitFrame>(new Type_xrWaitFrame(xrWaitFrame_HOOK_STATIC));
-                return retVal;
-            }
-            else
-            {
-                return mOldProc(instance, name, out function);
-            }
-        }
-
-        [MonoPInvokeCallback(typeof(Type_xrWaitFrame))]
-        int xrWaitFrame_HOOK_STATIC(ulong session, in XrFrameWaitInfo waitInfo, ref XrFrameState state)
-        {
-            return xrWaitFrame_HOOK(session, waitInfo, ref state);
-        }
-
-        int xrWaitFrame_HOOK(ulong session, in XrFrameWaitInfo waitInfo, ref XrFrameState state)
-        {
-            int retVal = mOldWaitFrame(session, waitInfo, ref state);
-            frame_time = state.predictedDisplayTime;
-            return retVal;
-        }
+        Type_xrCreateHandTrackerEXT xrCreateHandTrackerEXT;
+        Type_xrDestroyHandTrackerEXT xrDestroyHandTrackerEXT;
+        Type_xrLocateHandJointsEXT xrLocateHandJointsEXT;
+        Type_xrGetHandMeshFB xrGetHandMeshFB;
 
         public event Action SessionBegin;
 
@@ -328,22 +210,36 @@ namespace openxr
             session_ = session;
             Debug.Log($"OnSessionBegin: {instance_}.{session_}");
 
-            XrHandTrackerCreateInfoEXT lh_create = new XrHandTrackerCreateInfoEXT(1);
-            XrHandTrackerCreateInfoEXT rh_create = new XrHandTrackerCreateInfoEXT(2);
-            int retVal = 0;
-
-            retVal = GetInstanceProc<Type_xrCreateHandTrackerEXT>("xrCreateHandTrackerEXT")(session, rh_create, out handle_right);
-            if (retVal != 0)
+            var getInstanceProcAddr = Marshal.GetDelegateForFunctionPointer<Type_xrGetInstanceProcAddr>(xrGetInstanceProcAddr);
+            Func<string, IntPtr> getAddr = (string name) =>
             {
-                Debug.Log("Couldn't open right  hand tracker: Error " + retVal);
-                return;
+                IntPtr ptr;
+                getInstanceProcAddr(instance_, name, out ptr);
+                return ptr;
+            };
+            xrCreateHandTrackerEXT = Marshal.GetDelegateForFunctionPointer<Type_xrCreateHandTrackerEXT>(getAddr("xrCreateHandTrackerEXT"));
+            xrDestroyHandTrackerEXT = Marshal.GetDelegateForFunctionPointer<Type_xrDestroyHandTrackerEXT>(getAddr("xrDestroyHandTrackerEXT"));
+            xrLocateHandJointsEXT = Marshal.GetDelegateForFunctionPointer<Type_xrLocateHandJointsEXT>(getAddr("xrLocateHandJointsEXT"));
+            xrGetHandMeshFB = Marshal.GetDelegateForFunctionPointer<Type_xrGetHandMeshFB>(getAddr("xrGetHandMeshFB"));
+
+            {
+                XrHandTrackerCreateInfoEXT lh_create = new XrHandTrackerCreateInfoEXT(1);
+                var retVal = xrCreateHandTrackerEXT(session, lh_create, out handle_left);
+                if (retVal != 0)
+                {
+                    Debug.Log("Couldn't open left  hand tracker: Error " + retVal);
+                    return;
+                }
             }
 
-            retVal = GetInstanceProc<Type_xrCreateHandTrackerEXT>("xrCreateHandTrackerEXT")(session, lh_create, out handle_left);
-            if (retVal != 0)
             {
-                Debug.Log("Couldn't open left  hand tracker: Error " + retVal);
-                return;
+                XrHandTrackerCreateInfoEXT rh_create = new XrHandTrackerCreateInfoEXT(2);
+                var retVal = xrCreateHandTrackerEXT(session, rh_create, out handle_right);
+                if (retVal != 0)
+                {
+                    Debug.Log("Couldn't open right  hand tracker: Error " + retVal);
+                    return;
+                }
             }
 
             SessionBegin();
@@ -369,20 +265,22 @@ namespace openxr
         {
             if (handle_left != 0)
             {
-                Type_xrDestroyHandTrackerEXT fp = GetInstanceProc<Type_xrDestroyHandTrackerEXT>("xrDestroyHandTrackerEXT");
-                if (fp != null)
-                {
-                    fp(handle_left);
-                }
+                // Type_xrDestroyHandTrackerEXT fp = GetInstanceProc<Type_xrDestroyHandTrackerEXT>("xrDestroyHandTrackerEXT");
+                // if (fp != null)
+                // {
+                //     fp(handle_left);
+                // }
+                xrDestroyHandTrackerEXT(handle_left);
                 handle_left = 0;
             }
             if (handle_right != 0)
             {
-                Type_xrDestroyHandTrackerEXT fp = GetInstanceProc<Type_xrDestroyHandTrackerEXT>("xrDestroyHandTrackerEXT");
-                if (fp != null)
-                {
-                    fp(handle_right);
-                }
+                // Type_xrDestroyHandTrackerEXT fp = GetInstanceProc<Type_xrDestroyHandTrackerEXT>("xrDestroyHandTrackerEXT");
+                // if (fp != null)
+                // {
+                //     fp(handle_right);
+                // }
+                xrDestroyHandTrackerEXT(handle_right);
                 handle_right = 0;
             }
         }
@@ -399,7 +297,7 @@ namespace openxr
             instance_ = 0;
         }
 
-        public void GetHandJoints(Hand_Index hand, out Vector3[] positions, out Quaternion[] orientations, out float[] radius)
+        public void GetHandJoints(long frame_time, Hand_Index hand, out Vector3[] positions, out Quaternion[] orientations, out float[] radius)
         {
             var handle = GetHandle(hand);
             if (handle != 0)
@@ -407,10 +305,10 @@ namespace openxr
                 XrHandJointLocationEXT[] allJoints = new XrHandJointLocationEXT[26];
                 XrHandJointsLocateInfoEXT jli = new XrHandJointsLocateInfoEXT(OpenXRFeature.GetCurrentAppSpace(), frame_time);
                 XrHandJointLocationsEXT joints = new XrHandJointLocationsEXT(ref allJoints);
-                Type_xrLocateHandJointsEXT fp = GetInstanceProc<Type_xrLocateHandJointsEXT>("xrLocateHandJointsEXT");
-                if (fp != null)
+                // Type_xrLocateHandJointsEXT fp = GetInstanceProc<Type_xrLocateHandJointsEXT>("xrLocateHandJointsEXT");
+                // if (fp != null)
                 {
-                    int retVal = fp(handle, jli, ref joints);
+                    int retVal = xrLocateHandJointsEXT(handle, jli, ref joints);
                     joints.Unpin();
                     if (retVal == 0)
                     {
@@ -694,11 +592,11 @@ namespace openxr
 
             XrHandTrackingMeshFB meshZero = new XrHandTrackingMeshFB(0, 0, 0);
             // find size of mesh
-            Type_xrGetHandMeshFB mesh_get_fn = GetInstanceProc<Type_xrGetHandMeshFB>("xrGetHandMeshFB");
-            int retVal = mesh_get_fn(handle, ref meshZero);
+            // Type_xrGetHandMeshFB mesh_get_fn = GetInstanceProc<Type_xrGetHandMeshFB>("xrGetHandMeshFB");
+            int retVal = xrGetHandMeshFB(handle, ref meshZero);
             // get actual mesh
             XrHandTrackingMeshFB mesh = new XrHandTrackingMeshFB(meshZero.jointCountOutput, meshZero.vertexCountOutput, meshZero.indexCountOutput);
-            retVal = mesh_get_fn(handle, ref mesh);
+            retVal = xrGetHandMeshFB(handle, ref mesh);
             if (retVal != 0)
             {
                 // Debug.LogError("mesh_get_fn");
@@ -786,7 +684,7 @@ namespace openxr
             return handObj;
         }
 
-        public void ApplyHandJointsToMesh(Hand_Index hand, GameObject handObj)
+        public void ApplyHandJointsToMesh(long frame_time, Hand_Index hand, GameObject handObj)
         {
             var handle = GetHandle(hand);
             if (handObj != null)
@@ -795,7 +693,7 @@ namespace openxr
                 float[] radius;
                 Vector3[] positions;
                 Quaternion[] orientations;
-                GetHandJoints(hand, out positions, out orientations, out radius);
+                GetHandJoints(frame_time, hand, out positions, out orientations, out radius);
                 if (radius.Length == bones.Length && radius[0] > 0)
                 {
                     for (int c = 0; c < bones.Length; c++)

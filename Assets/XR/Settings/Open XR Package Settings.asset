@@ -486,6 +486,26 @@ MonoBehaviour:
   company: Joe M
   priority: 0
   required: 0
+--- !u!114 &-930432702472791155
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 504909519242e6e438cf0d83f10154d3, type: 3}
+  m_Name: FrameTimeFeature Android
+  m_EditorClassIdentifier: 
+  m_enabled: 0
+  nameUi: 
+  version: 
+  featureIdInternal: 
+  openxrExtensionStrings: 
+  company: 
+  priority: 0
+  required: 0
 --- !u!114 &-157625021000157494
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -809,6 +829,26 @@ MonoBehaviour:
   company: Microsoft
   priority: -100
   required: 0
+--- !u!114 &3130450698692243062
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 504909519242e6e438cf0d83f10154d3, type: 3}
+  m_Name: FrameTimeFeature Android
+  m_EditorClassIdentifier: 
+  m_enabled: 0
+  nameUi: 
+  version: 
+  featureIdInternal: 
+  openxrExtensionStrings: 
+  company: 
+  priority: 0
+  required: 0
 --- !u!114 &3219888418950561131
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -847,6 +887,26 @@ MonoBehaviour:
   featureIdInternal: com.microsoft.openxr.feature.interaction.hpmixedrealitycontroller
   openxrExtensionStrings: XR_EXT_hp_mixed_reality_controller
   company: Microsoft
+  priority: 0
+  required: 0
+--- !u!114 &5212140106499963881
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 504909519242e6e438cf0d83f10154d3, type: 3}
+  m_Name: FrameTimeFeature Standalone
+  m_EditorClassIdentifier: 
+  m_enabled: 0
+  nameUi: Frame time
+  version: 0.0.1
+  featureIdInternal: com.joemarshall.frametime
+  openxrExtensionStrings: 
+  company: Joe M
   priority: 0
   required: 0
 --- !u!114 &5398180017488504217
@@ -1111,6 +1171,26 @@ MonoBehaviour:
   company: Microsoft
   priority: -100
   required: 0
+--- !u!114 &8256244659698650744
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 504909519242e6e438cf0d83f10154d3, type: 3}
+  m_Name: FrameTimeFeature Android
+  m_EditorClassIdentifier: 
+  m_enabled: 0
+  nameUi: 
+  version: 
+  featureIdInternal: 
+  openxrExtensionStrings: 
+  company: 
+  priority: 0
+  required: 0
 --- !u!114 &8648077591799085886
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1146,6 +1226,7 @@ MonoBehaviour:
   features:
   - {fileID: -1752926927478676265}
   - {fileID: -2049639732477593126}
+  - {fileID: 5212140106499963881}
   - {fileID: -3423052880865012821}
   - {fileID: 1823322811037189416}
   - {fileID: -7283290522854005701}

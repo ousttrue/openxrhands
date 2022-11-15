@@ -13,13 +13,22 @@ namespace openxr
         public GameObject rightHand_;
 
         HandTrackingFeature handTracking_ = null;
+        FrameTimeFeature frameTime_ = null;
 
         void Start()
         {
             handTracking_ = OpenXRSettings.Instance.GetFeature<HandTrackingFeature>();
             if (handTracking_ == null || handTracking_.enabled == false)
             {
-                Debug.LogError("You need to enable the openXR hand tracking support extension ");
+                Debug.LogError("You need to enable the openXR hand tracking support extension");
+                this.enabled = false;
+                return;
+            }
+
+            frameTime_ = OpenXRSettings.Instance.GetFeature<FrameTimeFeature>();
+            if (frameTime_ == null || frameTime_ == false)
+            {
+                Debug.LogError("FrameTimeFeature required");
                 this.enabled = false;
                 return;
             }
@@ -61,8 +70,9 @@ namespace openxr
             }
             else
             {
-                handTracking_.ApplyHandJointsToMesh(HandTrackingFeature.Hand_Index.L, leftHand_);
+                handTracking_.ApplyHandJointsToMesh(frameTime_.FrameTime, HandTrackingFeature.Hand_Index.L, leftHand_);
             }
+
             if (rightHand_ == null)
             {
                 rightHand_ = handTracking_.CreateHandMesh(HandTrackingFeature.Hand_Index.R, transform, HandMaterial);
@@ -73,7 +83,7 @@ namespace openxr
             }
             else
             {
-                handTracking_.ApplyHandJointsToMesh(HandTrackingFeature.Hand_Index.R, rightHand_);
+                handTracking_.ApplyHandJointsToMesh(frameTime_.FrameTime, HandTrackingFeature.Hand_Index.R, rightHand_);
             }
         }
     }
