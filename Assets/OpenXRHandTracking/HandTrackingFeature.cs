@@ -26,26 +26,26 @@ public class HandTrackingFeature : OpenXRFeature
 
     public HandTrackingFeature()
     {
-        m_Singleton=this;
+        m_Singleton = this;
     }
 
     ~HandTrackingFeature()
     {
-        m_Singleton=null;
+        m_Singleton = null;
     }
     Vector3 PosToUnity(XrVector3f pos)
     {
-        return new Vector3(pos.x,pos.y,-pos.z);
+        return new Vector3(pos.x, pos.y, -pos.z);
 
     }
 
     Quaternion OrientationToUnity(XrVector4f ori)
     {
-        return new Quaternion(ori.x,ori.y,-ori.z,-ori.w);
+        return new Quaternion(ori.x, ori.y, -ori.z, -ori.w);
     }
 
 
-    public enum Hand_Index {L,R};
+    public enum Hand_Index { L, R };
     public const string featureId = "com.joemarshall.handtracking";
 
     Type_xrGetInstanceProcAddr mOldProc;
@@ -240,7 +240,7 @@ public class HandTrackingFeature : OpenXRFeature
 
     public T GetInstanceProc<T>(string procName) where T : System.Delegate
     {
-        if(xrGetInstanceProcAddr==null)
+        if (xrGetInstanceProcAddr == null)
         {
             return null;
         }
@@ -259,16 +259,17 @@ public class HandTrackingFeature : OpenXRFeature
             return null;
         }
     }
-[MonoPInvokeCallback(typeof(Type_xrGetInstanceProcAddr))]
+    [MonoPInvokeCallback(typeof(Type_xrGetInstanceProcAddr))]
     static int xrGetInstanceProcAddr_HOOK_STATIC(ulong instance, string name, out IntPtr function)
     {
-        HandTrackingFeature hf= m_Singleton;
-        if(hf!=null)
+        HandTrackingFeature hf = m_Singleton;
+        if (hf != null)
         {
-            return hf.xrGetInstanceProcAddr_HOOK(instance,name,out function);
-        }else
+            return hf.xrGetInstanceProcAddr_HOOK(instance, name, out function);
+        }
+        else
         {
-            function=IntPtr.Zero;
+            function = IntPtr.Zero;
             return -1;
         }
     }
@@ -289,14 +290,15 @@ public class HandTrackingFeature : OpenXRFeature
         }
     }
 
-[MonoPInvokeCallback(typeof(Type_xrWaitFrame))]
+    [MonoPInvokeCallback(typeof(Type_xrWaitFrame))]
     static int xrWaitFrame_HOOK_STATIC(ulong session, in XrFrameWaitInfo waitInfo, ref XrFrameState state)
     {
-        HandTrackingFeature hf= m_Singleton;
-        if(hf!=null)
+        HandTrackingFeature hf = m_Singleton;
+        if (hf != null)
         {
-            return hf.xrWaitFrame_HOOK(session,waitInfo,ref state);
-        }else
+            return hf.xrWaitFrame_HOOK(session, waitInfo, ref state);
+        }
+        else
         {
             return -1;
         }
@@ -317,21 +319,21 @@ public class HandTrackingFeature : OpenXRFeature
         curr_session = session;
         XrHandTrackerCreateInfoEXT lh_create = new XrHandTrackerCreateInfoEXT(1);
         XrHandTrackerCreateInfoEXT rh_create = new XrHandTrackerCreateInfoEXT(2);
-        int retVal=0;
+        int retVal = 0;
 
         retVal = GetInstanceProc<Type_xrCreateHandTrackerEXT>("xrCreateHandTrackerEXT")(curr_session, rh_create, out handle_right);
-        if(retVal!=0)
+        if (retVal != 0)
         {
-            Debug.Log("Couldn't open right  hand tracker: Error "+retVal);
+            Debug.Log("Couldn't open right  hand tracker: Error " + retVal);
             return;
         }
         retVal = GetInstanceProc<Type_xrCreateHandTrackerEXT>("xrCreateHandTrackerEXT")(curr_session, lh_create, out handle_left);
-        if(retVal!=0)
+        if (retVal != 0)
         {
-            Debug.Log("Couldn't open left  hand tracker: Error "+retVal);
+            Debug.Log("Couldn't open left  hand tracker: Error " + retVal);
             return;
         }
-//        Debug.Log("Opened trackers:L,R="+handle_left+","+handle_right);
+        //        Debug.Log("Opened trackers:L,R="+handle_left+","+handle_right);
     }
     override protected void OnSessionEnd(ulong session)
     {
@@ -381,15 +383,16 @@ public class HandTrackingFeature : OpenXRFeature
         curr_instanceid = 0;
     }
 
-    public void GetHandJoints(Hand_Index hand,out Vector3[] positions, out Quaternion[] orientations, out float[] radius)
+    public void GetHandJoints(Hand_Index hand, out Vector3[] positions, out Quaternion[] orientations, out float[] radius)
     {
-        ulong handle=0;
-        if(hand==Hand_Index.L)
+        ulong handle = 0;
+        if (hand == Hand_Index.L)
         {
-            handle=handle_left;
-        }else
+            handle = handle_left;
+        }
+        else
         {
-            handle=handle_right;
+            handle = handle_right;
         }
         if (handle != 0)
         {
@@ -430,7 +433,7 @@ public class HandTrackingFeature : OpenXRFeature
     }
 
 
-/********************************************************* HAND MESH (oculus specific) STUFF BELOW *********************************/
+    /********************************************************* HAND MESH (oculus specific) STUFF BELOW *********************************/
 
     /*typedef struct XrHandTrackingMeshFB {
         XrStructureType    type;
@@ -572,7 +575,7 @@ public class HandTrackingFeature : OpenXRFeature
             owner.vertexBlendIndices = pinnedArrays[6].AddrOfPinnedObject();
             owner.vertexBlendWeights = pinnedArrays[7].AddrOfPinnedObject();
             owner.indices = pinnedArrays[8].AddrOfPinnedObject();
-     
+
             owner.jointCapacityInput = joints;
             owner.vertexCapacityInput = vertices;
             owner.indexCapacityInput = indexCount;
@@ -618,9 +621,9 @@ public class HandTrackingFeature : OpenXRFeature
             vertexBlendWeights = IntPtr.Zero;
             indexCapacityInput = 0;
             indices = IntPtr.Zero;
-            jointCountOutput=0;
-            vertexCountOutput=0;
-            indexCountOutput=0;
+            jointCountOutput = 0;
+            vertexCountOutput = 0;
+            indexCountOutput = 0;
 
 
             if (joints != 0 && vertices != 0 && indexCount != 0)
@@ -635,11 +638,11 @@ public class HandTrackingFeature : OpenXRFeature
         {
             if (hand_mesh_pinned_arrays.ContainsKey(this))
             {
-                 HandMeshArrays arrays = hand_mesh_pinned_arrays[this];
+                HandMeshArrays arrays = hand_mesh_pinned_arrays[this];
 
-                 hand_mesh_pinned_arrays.Remove(this);
-                 return arrays;
-             }
+                hand_mesh_pinned_arrays.Remove(this);
+                return arrays;
+            }
             return null;
         }
 
@@ -665,21 +668,22 @@ public class HandTrackingFeature : OpenXRFeature
     /*XrResult xrGetHandMeshFB(
         XrHandTrackerEXT                            handTracker,
         XrHandTrackingMeshFB*                       mesh);*/
-    internal delegate int Type_xrGetHandMeshFB(ulong handTracker,ref XrHandTrackingMeshFB mesh);
+    internal delegate int Type_xrGetHandMeshFB(ulong handTracker, ref XrHandTrackingMeshFB mesh);
 
-    public void GetHandMesh(Hand_Index hand,Transform parent,Material mat,out GameObject handObj)
+    public void GetHandMesh(Hand_Index hand, Transform parent, Material mat, out GameObject handObj)
     {
-        handObj=null;
-        ulong handle=0;
-        string bone_postfix="";
-        if(hand==Hand_Index.L)
+        handObj = null;
+        ulong handle = 0;
+        string bone_postfix = "";
+        if (hand == Hand_Index.L)
         {
-            handle=handle_left;
-            bone_postfix="_lh";
-        }else
+            handle = handle_left;
+            bone_postfix = "_lh";
+        }
+        else
         {
-            handle=handle_right;
-            bone_postfix="_rh";
+            handle = handle_right;
+            bone_postfix = "_rh";
         }
 
         if (handle != 0)
@@ -691,16 +695,17 @@ public class HandTrackingFeature : OpenXRFeature
             // get actual mesh
             XrHandTrackingMeshFB mesh = new XrHandTrackingMeshFB(meshZero.jointCountOutput, meshZero.vertexCountOutput, meshZero.indexCountOutput);
             retVal = mesh_get_fn(handle, ref mesh);
-            if(retVal!=0)return;
+            if (retVal != 0) return;
             // construct mesh and bones and skin it correctly
-            if(hand==Hand_Index.L)
+            if (hand == Hand_Index.L)
             {
                 handObj = new GameObject("lhand");
-            }else
+            }
+            else
             {
                 handObj = new GameObject("rhand");
             }
-            handObj.transform.parent=parent;
+            handObj.transform.parent = parent;
             SkinnedMeshRenderer rend = handObj.AddComponent<SkinnedMeshRenderer>();
 
             HandMeshArrays meshArrays = mesh.GetArrays();
@@ -708,39 +713,39 @@ public class HandTrackingFeature : OpenXRFeature
             Vector3[] vertices = new Vector3[mesh.vertexCountOutput];
             Vector3[] normals = new Vector3[mesh.vertexCountOutput];
             Vector2[] uvs = new Vector2[mesh.vertexCountOutput];
-            BoneWeight []weights=new BoneWeight[mesh.vertexCountOutput];
+            BoneWeight[] weights = new BoneWeight[mesh.vertexCountOutput];
             int[] triangles = new int[mesh.indexCountOutput];
             for (int c = 0; c < mesh.vertexCountOutput; c++)
             {
                 XrVector3f pos = meshArrays.vertexPositions[c];
                 XrVector2f uv = meshArrays.vertexUVs[c];
-                XrVector3f normal=meshArrays.vertexNormals[c];
+                XrVector3f normal = meshArrays.vertexNormals[c];
                 vertices[c] = PosToUnity(pos);
                 uvs[c] = new Vector2(uv.x, uv.y);
-                normals[c]=PosToUnity(normal);
-                weights[c].boneIndex0=meshArrays.vertexBlendIndices[c].x;
-                weights[c].boneIndex1=meshArrays.vertexBlendIndices[c].y;
-                weights[c].boneIndex2=meshArrays.vertexBlendIndices[c].z;
-                weights[c].boneIndex3=meshArrays.vertexBlendIndices[c].w;
-                weights[c].weight0=meshArrays.vertexBlendWeights[c].x;
-                weights[c].weight1=meshArrays.vertexBlendWeights[c].y;
-                weights[c].weight2=meshArrays.vertexBlendWeights[c].z;
-                weights[c].weight3=meshArrays.vertexBlendWeights[c].w;
+                normals[c] = PosToUnity(normal);
+                weights[c].boneIndex0 = meshArrays.vertexBlendIndices[c].x;
+                weights[c].boneIndex1 = meshArrays.vertexBlendIndices[c].y;
+                weights[c].boneIndex2 = meshArrays.vertexBlendIndices[c].z;
+                weights[c].boneIndex3 = meshArrays.vertexBlendIndices[c].w;
+                weights[c].weight0 = meshArrays.vertexBlendWeights[c].x;
+                weights[c].weight1 = meshArrays.vertexBlendWeights[c].y;
+                weights[c].weight2 = meshArrays.vertexBlendWeights[c].z;
+                weights[c].weight3 = meshArrays.vertexBlendWeights[c].w;
             }
-            for (int c = 0; c < mesh.indexCountOutput; c+=3)
+            for (int c = 0; c < mesh.indexCountOutput; c += 3)
             {
-                triangles[c] = meshArrays.indices[c+2];
-                triangles[c+1] = meshArrays.indices[c+1];
-                triangles[c+2] = meshArrays.indices[c];
+                triangles[c] = meshArrays.indices[c + 2];
+                triangles[c + 1] = meshArrays.indices[c + 1];
+                triangles[c + 2] = meshArrays.indices[c];
             }
-            handShape.vertices=vertices;
-            handShape.uv=uvs;
-            handShape.triangles=triangles;
-            handShape.normals=normals;
-//            handShape.RecalculateNormals();
+            handShape.vertices = vertices;
+            handShape.uv = uvs;
+            handShape.triangles = triangles;
+            handShape.normals = normals;
+            //            handShape.RecalculateNormals();
             handShape.RecalculateBounds();
             handShape.RecalculateTangents();
-            Transform[] boneTransforms=new Transform[mesh.jointCountOutput];
+            Transform[] boneTransforms = new Transform[mesh.jointCountOutput];
             GameObject[] bones = new GameObject[mesh.jointCountOutput];
             Matrix4x4[] bindPoses = new Matrix4x4[mesh.jointCountOutput];
             // first make the bone objects - this is because parenting of bones is not always ordered 
@@ -748,13 +753,13 @@ public class HandTrackingFeature : OpenXRFeature
             {
                 bones[c] = new GameObject("Bone_" + c + bone_postfix);
             }
-            for(int c=0;c<mesh.jointCountOutput;c++)
+            for (int c = 0; c < mesh.jointCountOutput; c++)
             {
                 XrPosef joint = meshArrays.jointBindPoses[c];
-                XrPosef pose=meshArrays.jointBindPoses[c];
-                bones[c].transform.position=PosToUnity(pose.position);
-                bones[c].transform.rotation=OrientationToUnity(pose.orientation);
-                bones[c].transform.localScale=new Vector3(meshArrays.jointRadii[c],meshArrays.jointRadii[c],meshArrays.jointRadii[c]);
+                XrPosef pose = meshArrays.jointBindPoses[c];
+                bones[c].transform.position = PosToUnity(pose.position);
+                bones[c].transform.rotation = OrientationToUnity(pose.orientation);
+                bones[c].transform.localScale = new Vector3(meshArrays.jointRadii[c], meshArrays.jointRadii[c], meshArrays.jointRadii[c]);
 
                 if (meshArrays.jointParents[c] < mesh.jointCountOutput)
                 {
@@ -766,44 +771,44 @@ public class HandTrackingFeature : OpenXRFeature
                     //rend.rootBone=bones[c].transform;
                 }
 
-                bindPoses[c]=bones[c].transform.worldToLocalMatrix;
-                boneTransforms[c]=bones[c].transform;
+                bindPoses[c] = bones[c].transform.worldToLocalMatrix;
+                boneTransforms[c] = bones[c].transform;
             }
-            handShape.bindposes=bindPoses;
-            handShape.boneWeights=weights;
+            handShape.bindposes = bindPoses;
+            handShape.boneWeights = weights;
             rend.sharedMesh = handShape;
-            rend.bones=boneTransforms;
+            rend.bones = boneTransforms;
             rend.material = mat;
-            rend.updateWhenOffscreen=true;
+            rend.updateWhenOffscreen = true;
         }
     }
 
-    public void ApplyHandJointsToMesh(Hand_Index hand,GameObject handObj,float r1,float r2,float r3)
+    public void ApplyHandJointsToMesh(Hand_Index hand, GameObject handObj)
     {
-        ulong handle=0;
-        if(hand==Hand_Index.L)
+        ulong handle = 0;
+        if (hand == Hand_Index.L)
         {
-            handle=handle_left;
-        }else
-        {
-            handle=handle_right;
+            handle = handle_left;
         }
-        if(handObj!=null)
+        else
         {
-            Transform []bones=handObj.GetComponent<SkinnedMeshRenderer>().bones;
+            handle = handle_right;
+        }
+        if (handObj != null)
+        {
+            Transform[] bones = handObj.GetComponent<SkinnedMeshRenderer>().bones;
             float[] radius;
-            Vector3 []positions;
+            Vector3[] positions;
             Quaternion[] orientations;
-            GetHandJoints(hand,out positions,out orientations,out radius);
-            if(radius.Length==bones.Length && radius[0]>0)
+            GetHandJoints(hand, out positions, out orientations, out radius);
+            if (radius.Length == bones.Length && radius[0] > 0)
             {
-                for(int c=0;c<bones.Length;c++)
+                for (int c = 0; c < bones.Length; c++)
                 {
-                    bones[c].position=positions[c];
-                    bones[c].rotation=orientations[c];
+                    bones[c].position = positions[c];
+                    bones[c].rotation = orientations[c];
                 }
             }
         }
     }
-
 }
