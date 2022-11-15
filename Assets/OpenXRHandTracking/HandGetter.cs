@@ -2,76 +2,79 @@ using UnityEngine;
 using UnityEngine.XR.OpenXR;
 
 
-public class HandGetter : MonoBehaviour
+namespace openxr
 {
-    [SerializeField]
-    public Material HandMaterial;
-
-    public GameObject leftHand_;
-    public GameObject rightHand_;
-
-    HandTrackingFeature handTracking_ = null;
-
-    void Start()
+    public class HandGetter : MonoBehaviour
     {
-        handTracking_ = OpenXRSettings.Instance.GetFeature<HandTrackingFeature>();
-        if (handTracking_ == null || handTracking_.enabled == false)
+        [SerializeField]
+        public Material HandMaterial;
+
+        public GameObject leftHand_;
+        public GameObject rightHand_;
+
+        HandTrackingFeature handTracking_ = null;
+
+        void Start()
         {
-            Debug.LogError("You need to enable the openXR hand tracking support extension ");
+            handTracking_ = OpenXRSettings.Instance.GetFeature<HandTrackingFeature>();
+            if (handTracking_ == null || handTracking_.enabled == false)
+            {
+                Debug.LogError("You need to enable the openXR hand tracking support extension ");
+                this.enabled = false;
+                return;
+            }
+
+            handTracking_.SessionBegin += SessionBegin;
+            handTracking_.SessionEnd += SessionEnd;
             this.enabled = false;
-            return;
         }
 
-        handTracking_.SessionBegin += SessionBegin;
-        handTracking_.SessionEnd += SessionEnd;
-        this.enabled = false;
-    }
-
-    void SessionBegin()
-    {
-        this.enabled = true;
-    }
-
-    void SessionEnd()
-    {
-        if (leftHand_ != null)
+        void SessionBegin()
         {
-            GameObject.Destroy(leftHand_);
-            leftHand_ = null;
+            this.enabled = true;
         }
-        if (rightHand_ != null)
-        {
-            GameObject.Destroy(rightHand_);
-            rightHand_ = null;
-        }
-        this.enabled = false;
-    }
 
-    void Update()
-    {
-        if (leftHand_ == null)
+        void SessionEnd()
         {
-            leftHand_ = handTracking_.CreateHandMesh(HandTrackingFeature.Hand_Index.L, transform, HandMaterial);
             if (leftHand_ != null)
             {
-                Debug.Log(leftHand_);
+                GameObject.Destroy(leftHand_);
+                leftHand_ = null;
             }
-        }
-        else
-        {
-            handTracking_.ApplyHandJointsToMesh(HandTrackingFeature.Hand_Index.L, leftHand_);
-        }
-        if (rightHand_ == null)
-        {
-            rightHand_ = handTracking_.CreateHandMesh(HandTrackingFeature.Hand_Index.R, transform, HandMaterial);
             if (rightHand_ != null)
             {
-                Debug.Log(rightHand_);
+                GameObject.Destroy(rightHand_);
+                rightHand_ = null;
             }
+            this.enabled = false;
         }
-        else
+
+        void Update()
         {
-            handTracking_.ApplyHandJointsToMesh(HandTrackingFeature.Hand_Index.R, rightHand_);
+            if (leftHand_ == null)
+            {
+                leftHand_ = handTracking_.CreateHandMesh(HandTrackingFeature.Hand_Index.L, transform, HandMaterial);
+                if (leftHand_ != null)
+                {
+                    Debug.Log(leftHand_);
+                }
+            }
+            else
+            {
+                handTracking_.ApplyHandJointsToMesh(HandTrackingFeature.Hand_Index.L, leftHand_);
+            }
+            if (rightHand_ == null)
+            {
+                rightHand_ = handTracking_.CreateHandMesh(HandTrackingFeature.Hand_Index.R, transform, HandMaterial);
+                if (rightHand_ != null)
+                {
+                    Debug.Log(rightHand_);
+                }
+            }
+            else
+            {
+                handTracking_.ApplyHandJointsToMesh(HandTrackingFeature.Hand_Index.R, rightHand_);
+            }
         }
     }
 }
