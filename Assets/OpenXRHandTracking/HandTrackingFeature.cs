@@ -1,13 +1,10 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.XR.OpenXR.Features;
-using UnityEngine.XR.OpenXR;
 using UnityEngine;
 using UnityEditor;
 using System.Runtime.InteropServices;
 using System;
 using AOT;
-
 
 
 #if UNITY_EDITOR
@@ -22,17 +19,41 @@ using AOT;
 #endif
 public class HandTrackingFeature : OpenXRFeature
 {
-    static HandTrackingFeature m_Singleton;
+    public enum Hand_Index { L, R };
+    public const string featureId = "com.joemarshall.handtracking";
+    static Type_xrGetInstanceProcAddr mOldProc;
+    static Type_xrWaitFrame mOldWaitFrame;
+    static ulong curr_instanceid = 0;
+    static long frame_time = 0;
+    static ulong handle_left = 0;
+    static ulong handle_right = 0;
+    static List<Delegate> callbacks = new List<Delegate>();
+    static Dictionary<XrHandTrackingMeshFB, HandMeshArrays> hand_mesh_pinned_arrays = new Dictionary<XrHandTrackingMeshFB, HandMeshArrays>();
 
     public HandTrackingFeature()
     {
-        m_Singleton = this;
+        Debug.Log("new");
+        ClearStatic();
     }
 
     ~HandTrackingFeature()
     {
-        m_Singleton = null;
+        Debug.Log("delete");
+        ClearStatic();
     }
+
+    static void ClearStatic()
+    {
+        mOldProc = null;
+        mOldWaitFrame = null;
+        curr_instanceid = 0;
+        frame_time = 0;
+        handle_left = 0;
+        handle_right = 0;
+        callbacks.Clear();
+        hand_mesh_pinned_arrays.Clear();
+    }
+
     Vector3 PosToUnity(XrVector3f pos)
     {
         return new Vector3(pos.x, pos.y, -pos.z);
@@ -44,20 +65,26 @@ public class HandTrackingFeature : OpenXRFeature
         return new Quaternion(ori.x, ori.y, -ori.z, -ori.w);
     }
 
-
-    public enum Hand_Index { L, R };
-    public const string featureId = "com.joemarshall.handtracking";
-
-    Type_xrGetInstanceProcAddr mOldProc;
-    Type_xrWaitFrame mOldWaitFrame;
-
-    ulong curr_instanceid = 0;
-    ulong curr_session = 0;
-
-    long frame_time = 0;
-
-    ulong handle_left = 0;
-    ulong handle_right = 0;
+    ulong GetHandle(Hand_Index hand)
+    {
+        switch (hand)
+        {
+            case Hand_Index.L:
+                if (handle_left == 0)
+                {
+                    Debug.LogError("handle_left==0");
+                }
+                return handle_left;
+            case Hand_Index.R:
+                if (handle_right == 0)
+                {
+                    Debug.LogError("handle_right==0");
+                }
+                return handle_right;
+            default:
+                return 0;
+        }
+    }
 
     // get the address of the hand tracking functions using: OpenXRFeature.xrGetInstanceProcAddr
     /*XrResult xrGetInstanceProcAddr(
@@ -222,8 +249,7 @@ public class HandTrackingFeature : OpenXRFeature
         int handJointSet;
     }
 
-    List<Delegate> callbacks = new List<Delegate>();
-    protected IntPtr GetCallback<T>(T functionAddr) where T : System.Delegate
+    protected static IntPtr GetCallback<T>(T functionAddr) where T : System.Delegate
     {
         callbacks.Add(functionAddr); // store it so it doesn't get garbage collected
         IntPtr fp = Marshal.GetFunctionPointerForDelegate(functionAddr);
@@ -262,19 +288,10 @@ public class HandTrackingFeature : OpenXRFeature
     [MonoPInvokeCallback(typeof(Type_xrGetInstanceProcAddr))]
     static int xrGetInstanceProcAddr_HOOK_STATIC(ulong instance, string name, out IntPtr function)
     {
-        HandTrackingFeature hf = m_Singleton;
-        if (hf != null)
-        {
-            return hf.xrGetInstanceProcAddr_HOOK(instance, name, out function);
-        }
-        else
-        {
-            function = IntPtr.Zero;
-            return -1;
-        }
+        return xrGetInstanceProcAddr_HOOK(instance, name, out function);
     }
 
-    int xrGetInstanceProcAddr_HOOK(ulong instance, string name, out IntPtr function)
+    static int xrGetInstanceProcAddr_HOOK(ulong instance, string name, out IntPtr function)
     {
         if (name == "xrWaitFrame")
         {
@@ -293,58 +310,57 @@ public class HandTrackingFeature : OpenXRFeature
     [MonoPInvokeCallback(typeof(Type_xrWaitFrame))]
     static int xrWaitFrame_HOOK_STATIC(ulong session, in XrFrameWaitInfo waitInfo, ref XrFrameState state)
     {
-        HandTrackingFeature hf = m_Singleton;
-        if (hf != null)
-        {
-            return hf.xrWaitFrame_HOOK(session, waitInfo, ref state);
-        }
-        else
-        {
-            return -1;
-        }
+        return xrWaitFrame_HOOK(session, waitInfo, ref state);
     }
 
-
-    int xrWaitFrame_HOOK(ulong session, in XrFrameWaitInfo waitInfo, ref XrFrameState state)
+    static int xrWaitFrame_HOOK(ulong session, in XrFrameWaitInfo waitInfo, ref XrFrameState state)
     {
-
         int retVal = mOldWaitFrame(session, waitInfo, ref state);
         frame_time = state.predictedDisplayTime;
         return retVal;
     }
 
+    public event Action SessionBegin;
 
     override protected void OnSessionBegin(ulong session)
     {
-        curr_session = session;
+        Debug.Log("OnSessionBegin");
+
         XrHandTrackerCreateInfoEXT lh_create = new XrHandTrackerCreateInfoEXT(1);
         XrHandTrackerCreateInfoEXT rh_create = new XrHandTrackerCreateInfoEXT(2);
         int retVal = 0;
 
-        retVal = GetInstanceProc<Type_xrCreateHandTrackerEXT>("xrCreateHandTrackerEXT")(curr_session, rh_create, out handle_right);
+        retVal = GetInstanceProc<Type_xrCreateHandTrackerEXT>("xrCreateHandTrackerEXT")(session, rh_create, out handle_right);
         if (retVal != 0)
         {
             Debug.Log("Couldn't open right  hand tracker: Error " + retVal);
             return;
         }
-        retVal = GetInstanceProc<Type_xrCreateHandTrackerEXT>("xrCreateHandTrackerEXT")(curr_session, lh_create, out handle_left);
+
+        retVal = GetInstanceProc<Type_xrCreateHandTrackerEXT>("xrCreateHandTrackerEXT")(session, lh_create, out handle_left);
         if (retVal != 0)
         {
             Debug.Log("Couldn't open left  hand tracker: Error " + retVal);
             return;
         }
-        //        Debug.Log("Opened trackers:L,R="+handle_left+","+handle_right);
+
+        SessionBegin();
     }
+
+    public event Action SessionEnd;
+
     override protected void OnSessionEnd(ulong session)
     {
+        SessionEnd();
+
+        Debug.Log("OnSessionEnd");
         closeHandTracker();
-        curr_session = 0;
     }
 
     override protected void OnSessionDestroy(ulong xrSession)
     {
+        Debug.Log("OnSessionDestroy");
         closeHandTracker();
-        curr_session = 0;
     }
 
     void closeHandTracker()
@@ -369,8 +385,6 @@ public class HandTrackingFeature : OpenXRFeature
         }
     }
 
-
-
     override protected bool OnInstanceCreate(ulong xrInstance)
     {
         curr_instanceid = xrInstance;
@@ -385,15 +399,7 @@ public class HandTrackingFeature : OpenXRFeature
 
     public void GetHandJoints(Hand_Index hand, out Vector3[] positions, out Quaternion[] orientations, out float[] radius)
     {
-        ulong handle = 0;
-        if (hand == Hand_Index.L)
-        {
-            handle = handle_left;
-        }
-        else
-        {
-            handle = handle_right;
-        }
+        var handle = GetHandle(hand);
         if (handle != 0)
         {
             XrHandJointLocationEXT[] allJoints = new XrHandJointLocationEXT[26];
@@ -521,10 +527,6 @@ public class HandTrackingFeature : OpenXRFeature
         public short w;
     }
 
-
-    static Dictionary<XrHandTrackingMeshFB, HandMeshArrays> hand_mesh_pinned_arrays = new Dictionary<XrHandTrackingMeshFB, HandMeshArrays>();
-
-
     // hold onto proper versions of the hand mesh arrays 
     // in something outside the main structure
     internal class HandMeshArrays
@@ -599,8 +601,6 @@ public class HandTrackingFeature : OpenXRFeature
         }
     }
 
-
-
     [StructLayout(LayoutKind.Sequential)]
     internal struct XrHandTrackingMeshFB
     {
@@ -670,9 +670,8 @@ public class HandTrackingFeature : OpenXRFeature
         XrHandTrackingMeshFB*                       mesh);*/
     internal delegate int Type_xrGetHandMeshFB(ulong handTracker, ref XrHandTrackingMeshFB mesh);
 
-    public void GetHandMesh(Hand_Index hand, Transform parent, Material mat, out GameObject handObj)
+    public GameObject CreateHandMesh(Hand_Index hand, Transform parent, Material mat)
     {
-        handObj = null;
         ulong handle = 0;
         string bone_postfix = "";
         if (hand == Hand_Index.L)
@@ -685,115 +684,109 @@ public class HandTrackingFeature : OpenXRFeature
             handle = handle_right;
             bone_postfix = "_rh";
         }
-
-        if (handle != 0)
+        if (handle == 0)
         {
-            XrHandTrackingMeshFB meshZero = new XrHandTrackingMeshFB(0, 0, 0);
-            // find size of mesh
-            Type_xrGetHandMeshFB mesh_get_fn = GetInstanceProc<Type_xrGetHandMeshFB>("xrGetHandMeshFB");
-            int retVal = mesh_get_fn(handle, ref meshZero);
-            // get actual mesh
-            XrHandTrackingMeshFB mesh = new XrHandTrackingMeshFB(meshZero.jointCountOutput, meshZero.vertexCountOutput, meshZero.indexCountOutput);
-            retVal = mesh_get_fn(handle, ref mesh);
-            if (retVal != 0) return;
-            // construct mesh and bones and skin it correctly
-            if (hand == Hand_Index.L)
+            // Debug.LogError("no handle");
+            return null;
+        }
+
+        XrHandTrackingMeshFB meshZero = new XrHandTrackingMeshFB(0, 0, 0);
+        // find size of mesh
+        Type_xrGetHandMeshFB mesh_get_fn = GetInstanceProc<Type_xrGetHandMeshFB>("xrGetHandMeshFB");
+        int retVal = mesh_get_fn(handle, ref meshZero);
+        // get actual mesh
+        XrHandTrackingMeshFB mesh = new XrHandTrackingMeshFB(meshZero.jointCountOutput, meshZero.vertexCountOutput, meshZero.indexCountOutput);
+        retVal = mesh_get_fn(handle, ref mesh);
+        if (retVal != 0)
+        {
+            // Debug.LogError("mesh_get_fn");
+            return null;
+        }
+
+        // construct mesh and bones and skin it correctly
+        var handObj = new GameObject((hand == Hand_Index.L) ? "lhand" : "rhand");
+        handObj.transform.parent = parent;
+        SkinnedMeshRenderer rend = handObj.AddComponent<SkinnedMeshRenderer>();
+
+        HandMeshArrays meshArrays = mesh.GetArrays();
+        Mesh handShape = new Mesh();
+        Vector3[] vertices = new Vector3[mesh.vertexCountOutput];
+        Vector3[] normals = new Vector3[mesh.vertexCountOutput];
+        Vector2[] uvs = new Vector2[mesh.vertexCountOutput];
+        BoneWeight[] weights = new BoneWeight[mesh.vertexCountOutput];
+        int[] triangles = new int[mesh.indexCountOutput];
+        for (int c = 0; c < mesh.vertexCountOutput; c++)
+        {
+            XrVector3f pos = meshArrays.vertexPositions[c];
+            XrVector2f uv = meshArrays.vertexUVs[c];
+            XrVector3f normal = meshArrays.vertexNormals[c];
+            vertices[c] = PosToUnity(pos);
+            uvs[c] = new Vector2(uv.x, uv.y);
+            normals[c] = PosToUnity(normal);
+            weights[c].boneIndex0 = meshArrays.vertexBlendIndices[c].x;
+            weights[c].boneIndex1 = meshArrays.vertexBlendIndices[c].y;
+            weights[c].boneIndex2 = meshArrays.vertexBlendIndices[c].z;
+            weights[c].boneIndex3 = meshArrays.vertexBlendIndices[c].w;
+            weights[c].weight0 = meshArrays.vertexBlendWeights[c].x;
+            weights[c].weight1 = meshArrays.vertexBlendWeights[c].y;
+            weights[c].weight2 = meshArrays.vertexBlendWeights[c].z;
+            weights[c].weight3 = meshArrays.vertexBlendWeights[c].w;
+        }
+        for (int c = 0; c < mesh.indexCountOutput; c += 3)
+        {
+            triangles[c] = meshArrays.indices[c + 2];
+            triangles[c + 1] = meshArrays.indices[c + 1];
+            triangles[c + 2] = meshArrays.indices[c];
+        }
+        handShape.vertices = vertices;
+        handShape.uv = uvs;
+        handShape.triangles = triangles;
+        handShape.normals = normals;
+        //            handShape.RecalculateNormals();
+        handShape.RecalculateBounds();
+        handShape.RecalculateTangents();
+        Transform[] boneTransforms = new Transform[mesh.jointCountOutput];
+        GameObject[] bones = new GameObject[mesh.jointCountOutput];
+        Matrix4x4[] bindPoses = new Matrix4x4[mesh.jointCountOutput];
+        // first make the bone objects - this is because parenting of bones is not always ordered 
+        for (int c = 0; c < mesh.jointCountOutput; c++)
+        {
+            bones[c] = new GameObject("Bone_" + c + bone_postfix);
+        }
+        for (int c = 0; c < mesh.jointCountOutput; c++)
+        {
+            XrPosef joint = meshArrays.jointBindPoses[c];
+            XrPosef pose = meshArrays.jointBindPoses[c];
+            bones[c].transform.position = PosToUnity(pose.position);
+            bones[c].transform.rotation = OrientationToUnity(pose.orientation);
+            bones[c].transform.localScale = new Vector3(meshArrays.jointRadii[c], meshArrays.jointRadii[c], meshArrays.jointRadii[c]);
+
+            if (meshArrays.jointParents[c] < mesh.jointCountOutput)
             {
-                handObj = new GameObject("lhand");
+                bones[c].transform.parent = bones[meshArrays.jointParents[c]].transform;
             }
             else
             {
-                handObj = new GameObject("rhand");
+                bones[c].transform.parent = handObj.transform;
+                //rend.rootBone=bones[c].transform;
             }
-            handObj.transform.parent = parent;
-            SkinnedMeshRenderer rend = handObj.AddComponent<SkinnedMeshRenderer>();
 
-            HandMeshArrays meshArrays = mesh.GetArrays();
-            Mesh handShape = new Mesh();
-            Vector3[] vertices = new Vector3[mesh.vertexCountOutput];
-            Vector3[] normals = new Vector3[mesh.vertexCountOutput];
-            Vector2[] uvs = new Vector2[mesh.vertexCountOutput];
-            BoneWeight[] weights = new BoneWeight[mesh.vertexCountOutput];
-            int[] triangles = new int[mesh.indexCountOutput];
-            for (int c = 0; c < mesh.vertexCountOutput; c++)
-            {
-                XrVector3f pos = meshArrays.vertexPositions[c];
-                XrVector2f uv = meshArrays.vertexUVs[c];
-                XrVector3f normal = meshArrays.vertexNormals[c];
-                vertices[c] = PosToUnity(pos);
-                uvs[c] = new Vector2(uv.x, uv.y);
-                normals[c] = PosToUnity(normal);
-                weights[c].boneIndex0 = meshArrays.vertexBlendIndices[c].x;
-                weights[c].boneIndex1 = meshArrays.vertexBlendIndices[c].y;
-                weights[c].boneIndex2 = meshArrays.vertexBlendIndices[c].z;
-                weights[c].boneIndex3 = meshArrays.vertexBlendIndices[c].w;
-                weights[c].weight0 = meshArrays.vertexBlendWeights[c].x;
-                weights[c].weight1 = meshArrays.vertexBlendWeights[c].y;
-                weights[c].weight2 = meshArrays.vertexBlendWeights[c].z;
-                weights[c].weight3 = meshArrays.vertexBlendWeights[c].w;
-            }
-            for (int c = 0; c < mesh.indexCountOutput; c += 3)
-            {
-                triangles[c] = meshArrays.indices[c + 2];
-                triangles[c + 1] = meshArrays.indices[c + 1];
-                triangles[c + 2] = meshArrays.indices[c];
-            }
-            handShape.vertices = vertices;
-            handShape.uv = uvs;
-            handShape.triangles = triangles;
-            handShape.normals = normals;
-            //            handShape.RecalculateNormals();
-            handShape.RecalculateBounds();
-            handShape.RecalculateTangents();
-            Transform[] boneTransforms = new Transform[mesh.jointCountOutput];
-            GameObject[] bones = new GameObject[mesh.jointCountOutput];
-            Matrix4x4[] bindPoses = new Matrix4x4[mesh.jointCountOutput];
-            // first make the bone objects - this is because parenting of bones is not always ordered 
-            for (int c = 0; c < mesh.jointCountOutput; c++)
-            {
-                bones[c] = new GameObject("Bone_" + c + bone_postfix);
-            }
-            for (int c = 0; c < mesh.jointCountOutput; c++)
-            {
-                XrPosef joint = meshArrays.jointBindPoses[c];
-                XrPosef pose = meshArrays.jointBindPoses[c];
-                bones[c].transform.position = PosToUnity(pose.position);
-                bones[c].transform.rotation = OrientationToUnity(pose.orientation);
-                bones[c].transform.localScale = new Vector3(meshArrays.jointRadii[c], meshArrays.jointRadii[c], meshArrays.jointRadii[c]);
-
-                if (meshArrays.jointParents[c] < mesh.jointCountOutput)
-                {
-                    bones[c].transform.parent = bones[meshArrays.jointParents[c]].transform;
-                }
-                else
-                {
-                    bones[c].transform.parent = handObj.transform;
-                    //rend.rootBone=bones[c].transform;
-                }
-
-                bindPoses[c] = bones[c].transform.worldToLocalMatrix;
-                boneTransforms[c] = bones[c].transform;
-            }
-            handShape.bindposes = bindPoses;
-            handShape.boneWeights = weights;
-            rend.sharedMesh = handShape;
-            rend.bones = boneTransforms;
-            rend.material = mat;
-            rend.updateWhenOffscreen = true;
+            bindPoses[c] = bones[c].transform.worldToLocalMatrix;
+            boneTransforms[c] = bones[c].transform;
         }
+        handShape.bindposes = bindPoses;
+        handShape.boneWeights = weights;
+        rend.sharedMesh = handShape;
+        rend.bones = boneTransforms;
+        rend.material = mat;
+        rend.updateWhenOffscreen = true;
+
+        return handObj;
     }
 
     public void ApplyHandJointsToMesh(Hand_Index hand, GameObject handObj)
     {
-        ulong handle = 0;
-        if (hand == Hand_Index.L)
-        {
-            handle = handle_left;
-        }
-        else
-        {
-            handle = handle_right;
-        }
+        var handle = GetHandle(hand);
         if (handObj != null)
         {
             Transform[] bones = handObj.GetComponent<SkinnedMeshRenderer>().bones;
