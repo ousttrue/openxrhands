@@ -460,7 +460,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 43b334d21dbd4d849a2293cb13c8f6cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  rx: 0
-  ry: 0
-  rz: 0
-  mat: {fileID: 2100000, guid: a487e6ac273f1ab49ab3e42e6e23eb53, type: 2}
+  HandMaterial: {fileID: 2100000, guid: a487e6ac273f1ab49ab3e42e6e23eb53, type: 2}
+  leftHand_: {fileID: 0}
+  rightHand_: {fileID: 0}

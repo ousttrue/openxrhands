@@ -23,38 +23,37 @@ namespace openxr
     {
         public enum Hand_Index { L, R };
         public const string featureId = "com.joemarshall.handtracking";
-        static Type_xrGetInstanceProcAddr mOldProc;
-        static Type_xrWaitFrame mOldWaitFrame;
-        static ulong curr_instanceid = 0;
-        static long frame_time = 0;
-        static ulong handle_left = 0;
-        static ulong handle_right = 0;
-        static List<Delegate> callbacks = new List<Delegate>();
+        ulong instance_;
+        ulong session_;
+
+        Type_xrGetInstanceProcAddr mOldProc;
+        Type_xrWaitFrame mOldWaitFrame;
+        long frame_time = 0;
+        ulong handle_left = 0;
+        ulong handle_right = 0;
+        List<Delegate> callbacks = new List<Delegate>();
         static Dictionary<XrHandTrackingMeshFB, HandMeshArrays> hand_mesh_pinned_arrays = new Dictionary<XrHandTrackingMeshFB, HandMeshArrays>();
 
         public HandTrackingFeature()
         {
             Debug.Log("new");
-            ClearStatic();
         }
 
         ~HandTrackingFeature()
         {
             Debug.Log("delete");
-            ClearStatic();
         }
 
-        static void ClearStatic()
-        {
-            mOldProc = null;
-            mOldWaitFrame = null;
-            curr_instanceid = 0;
-            frame_time = 0;
-            handle_left = 0;
-            handle_right = 0;
-            callbacks.Clear();
-            hand_mesh_pinned_arrays.Clear();
-        }
+        // static void ClearStatic()
+        // {
+        //     mOldProc = null;
+        //     mOldWaitFrame = null;
+        //     frame_time = 0;
+        //     handle_left = 0;
+        //     handle_right = 0;
+        //     callbacks.Clear();
+        //     hand_mesh_pinned_arrays.Clear();
+        // }
 
         Vector3 PosToUnity(XrVector3f pos)
         {
@@ -251,7 +250,7 @@ namespace openxr
             int handJointSet;
         }
 
-        protected static IntPtr GetCallback<T>(T functionAddr) where T : System.Delegate
+        protected IntPtr GetCallback<T>(T functionAddr) where T : System.Delegate
         {
             callbacks.Add(functionAddr); // store it so it doesn't get garbage collected
             IntPtr fp = Marshal.GetFunctionPointerForDelegate(functionAddr);
@@ -277,7 +276,7 @@ namespace openxr
             {
                 return null;
             }
-            int retVal = mOldProc(curr_instanceid, procName, out fp);
+            int retVal = mOldProc(instance_, procName, out fp);
             if (retVal == 0)
             {
                 return (T)Marshal.GetDelegateForFunctionPointer(fp, typeof(T));
@@ -288,12 +287,12 @@ namespace openxr
             }
         }
         [MonoPInvokeCallback(typeof(Type_xrGetInstanceProcAddr))]
-        static int xrGetInstanceProcAddr_HOOK_STATIC(ulong instance, string name, out IntPtr function)
+        int xrGetInstanceProcAddr_HOOK_STATIC(ulong instance, string name, out IntPtr function)
         {
             return xrGetInstanceProcAddr_HOOK(instance, name, out function);
         }
 
-        static int xrGetInstanceProcAddr_HOOK(ulong instance, string name, out IntPtr function)
+        int xrGetInstanceProcAddr_HOOK(ulong instance, string name, out IntPtr function)
         {
             if (name == "xrWaitFrame")
             {
@@ -310,12 +309,12 @@ namespace openxr
         }
 
         [MonoPInvokeCallback(typeof(Type_xrWaitFrame))]
-        static int xrWaitFrame_HOOK_STATIC(ulong session, in XrFrameWaitInfo waitInfo, ref XrFrameState state)
+        int xrWaitFrame_HOOK_STATIC(ulong session, in XrFrameWaitInfo waitInfo, ref XrFrameState state)
         {
             return xrWaitFrame_HOOK(session, waitInfo, ref state);
         }
 
-        static int xrWaitFrame_HOOK(ulong session, in XrFrameWaitInfo waitInfo, ref XrFrameState state)
+        int xrWaitFrame_HOOK(ulong session, in XrFrameWaitInfo waitInfo, ref XrFrameState state)
         {
             int retVal = mOldWaitFrame(session, waitInfo, ref state);
             frame_time = state.predictedDisplayTime;
@@ -326,7 +325,8 @@ namespace openxr
 
         override protected void OnSessionBegin(ulong session)
         {
-            Debug.Log("OnSessionBegin");
+            session_ = session;
+            Debug.Log($"OnSessionBegin: {instance_}.{session_}");
 
             XrHandTrackerCreateInfoEXT lh_create = new XrHandTrackerCreateInfoEXT(1);
             XrHandTrackerCreateInfoEXT rh_create = new XrHandTrackerCreateInfoEXT(2);
@@ -353,10 +353,10 @@ namespace openxr
 
         override protected void OnSessionEnd(ulong session)
         {
+            Debug.Log($"OnSessionEnd: {instance_}.{session_}");
             SessionEnd();
-
-            Debug.Log("OnSessionEnd");
             closeHandTracker();
+            session_ = 0;
         }
 
         override protected void OnSessionDestroy(ulong xrSession)
@@ -389,14 +389,14 @@ namespace openxr
 
         override protected bool OnInstanceCreate(ulong xrInstance)
         {
-            curr_instanceid = xrInstance;
+            instance_ = xrInstance;
             return true;
         }
 
         override protected void OnInstanceDestroy(ulong xrInstance)
         {
             closeHandTracker();
-            curr_instanceid = 0;
+            instance_ = 0;
         }
 
         public void GetHandJoints(Hand_Index hand, out Vector3[] positions, out Quaternion[] orientations, out float[] radius)
