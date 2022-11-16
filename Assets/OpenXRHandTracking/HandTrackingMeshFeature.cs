@@ -242,7 +242,7 @@ namespace openxr
         override protected void OnSessionBegin(ulong session)
         {
             session_ = session;
-            Debug.Log($"OnSessionBegin: {instance_}.{session_}");
+            Debug.Log($"{featureId}: {instance_}.{session_}");
 
             var getInstanceProcAddr = Marshal.GetDelegateForFunctionPointer<FrameTimeFeature.Type_xrGetInstanceProcAddr>(xrGetInstanceProcAddr);
             Func<string, IntPtr> getAddr = (string name) =>
