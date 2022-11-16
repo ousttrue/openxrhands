@@ -9,7 +9,7 @@ namespace openxr
 {
 #if UNITY_EDITOR
     [UnityEditor.XR.OpenXR.Features.OpenXRFeature(UiName = "Hand tracking Extension",
-        BuildTargetGroups = new[] { 
+        BuildTargetGroups = new[] {
             UnityEditor.BuildTargetGroup.Standalone, UnityEditor.BuildTargetGroup.WSA, UnityEditor.BuildTargetGroup.Android },
         Company = "Joe M",
         Desc = "Enable hand tracking in unity",
@@ -23,31 +23,12 @@ namespace openxr
         public const string featureId = "com.joemarshall.handtracking";
         public const string xr_extension = "XR_EXT_hand_tracking";
         public const int XR_HAND_JOINT_COUNT_EXT = 26;
-        PFN_xrGetInstanceProcAddr xrGetInstanceProcAddr_;
 
         public const int XR_TYPE_HAND_TRACKER_CREATE_INFO_EXT = 1000051001;
         public const int XR_TYPE_HAND_JOINTS_LOCATE_INFO_EXT = 1000051002;
         public const int XR_TYPE_HAND_JOINT_LOCATIONS_EXT = 1000051003;
 
         public enum Hand_Index { L, R };
-        ulong instance_;
-        ulong session_;
-
-        ulong handle_left_ = 0;
-        ulong handle_right_ = 0;
-
-        public ulong GetHandle(Hand_Index hand)
-        {
-            switch (hand)
-            {
-                case Hand_Index.L:
-                    return handle_left_;
-                case Hand_Index.R:
-                    return handle_right_;
-                default:
-                    return 0;
-            }
-        }
 
         // get the address of the hand tracking functions using: OpenXRFeature.xrGetInstanceProcAddr
 
@@ -82,9 +63,6 @@ namespace openxr
             public ulong space;
             public long time;
         };
-
-
-
 
         /*
         typedef struct XrHandJointLocationEXT {
@@ -138,17 +116,26 @@ namespace openxr
         Type_xrDestroyHandTrackerEXT xrDestroyHandTrackerEXT_;
         Type_xrLocateHandJointsEXT xrLocateHandJointsEXT_;
 
+        ulong instance_;
+        ulong session_;
+
+        ulong handle_left_ = 0;
+        ulong handle_right_ = 0;
+
         public event Action SessionBegin;
         public event Action SessionEnd;
 
-        public HandTrackingFeature()
+        public ulong GetHandle(Hand_Index hand)
         {
-            Debug.Log("new HandTrackingFeature");
-        }
-
-        ~HandTrackingFeature()
-        {
-            Debug.Log("delete HandTrackingFeature");
+            switch (hand)
+            {
+                case Hand_Index.L:
+                    return handle_left_;
+                case Hand_Index.R:
+                    return handle_right_;
+                default:
+                    return 0;
+            }
         }
 
         override protected bool OnInstanceCreate(ulong xrInstance)
@@ -162,7 +149,6 @@ namespace openxr
                 return false;
             }
 
-            xrGetInstanceProcAddr_ = Marshal.GetDelegateForFunctionPointer<PFN_xrGetInstanceProcAddr>(xrGetInstanceProcAddr);
             return true;
         }
 
@@ -178,10 +164,11 @@ namespace openxr
             session_ = session;
             Debug.Log($"{featureId}: {instance_}.{session_}");
 
+            var getInstanceProcAddr = Marshal.GetDelegateForFunctionPointer<PFN_xrGetInstanceProcAddr>(xrGetInstanceProcAddr);
             Func<string, IntPtr> getAddr = (string name) =>
             {
                 IntPtr ptr;
-                xrGetInstanceProcAddr_(instance_, name, out ptr);
+                getInstanceProcAddr(instance_, name, out ptr);
                 return ptr;
             };
             xrCreateHandTrackerEXT_ = Marshal.GetDelegateForFunctionPointer<Type_xrCreateHandTrackerEXT>(getAddr("xrCreateHandTrackerEXT"));
@@ -290,8 +277,8 @@ namespace openxr
             radius = new float[allJoints.Length];
             for (int c = 0; c < allJoints.Length; c++)
             {
-                positions[c] = allJoints[c].pose.position.PosToUnity();
-                orientations[c] = allJoints[c].pose.orientation.OrientationToUnity();
+                positions[c] = allJoints[c].pose.position.ToUnity();
+                orientations[c] = allJoints[c].pose.orientation.ToUnity();
                 if ((allJoints[c].locationFlags & 0x3) == 0)
                 {
                     radius[c] = 0f;

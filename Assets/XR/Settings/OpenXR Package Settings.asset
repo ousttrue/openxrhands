@@ -37,7 +37,7 @@ MonoBehaviour:
   version: 0.0.1
   featureIdInternal: com.ousttrue.bodytracking
   openxrExtensionStrings: XR_FB_body_tracking
-  company: Ousttrue
+  company: ousttrue
   priority: 0
   required: 0
 --- !u!114 &-8121539737849915872
@@ -222,6 +222,26 @@ MonoBehaviour:
   company: Unity
   priority: 0
   required: 0
+--- !u!114 &-1049349885958428777
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d6f2466b09f98a43992c62b5cdb0dee, type: 3}
+  m_Name: EyeTrackingFeature Standalone
+  m_EditorClassIdentifier: 
+  m_enabled: 1
+  nameUi: Eye tracking Extension
+  version: 0.0.1
+  featureIdInternal: com.ousttrue.eyetracking
+  openxrExtensionStrings: XR_FB_eye_tracking_social
+  company: ousttrue
+  priority: 0
+  required: 0
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -313,6 +333,7 @@ MonoBehaviour:
   - {fileID: -8265313260058767584}
   - {fileID: -8121539737849915872}
   - {fileID: 999383762173390110}
+  - {fileID: -1049349885958428777}
   - {fileID: -4564121519763079056}
   - {fileID: 1926576131302267895}
   - {fileID: 5122603824531843958}
@@ -346,6 +367,26 @@ MonoBehaviour:
   featureIdInternal: com.joemarshall.handtracking_mesh
   openxrExtensionStrings: XR_FB_hand_tracking_mesh
   company: Joe M
+  priority: 0
+  required: 0
+--- !u!114 &5948220757608373686
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d6f2466b09f98a43992c62b5cdb0dee, type: 3}
+  m_Name: EyeTrackingFeature Standalone
+  m_EditorClassIdentifier: 
+  m_enabled: 0
+  nameUi: 
+  version: 
+  featureIdInternal: 
+  openxrExtensionStrings: 
+  company: 
   priority: 0
   required: 0
 --- !u!114 &7775122957340586586

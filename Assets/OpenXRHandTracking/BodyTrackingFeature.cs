@@ -12,7 +12,7 @@ namespace openxr
     [UnityEditor.XR.OpenXR.Features.OpenXRFeature(UiName = "Body tracking Extension",
         BuildTargetGroups = new[] { 
             UnityEditor.BuildTargetGroup.Standalone, UnityEditor.BuildTargetGroup.Android },
-        Company = "Ousttrue",
+        Company = "ousttrue",
         Desc = "Enable body tracking in unity",
         DocumentationLink = "https://developer.oculus.com/documentation/native/android/move-body-tracking/",
         OpenxrExtensionStrings = xr_extension,
@@ -30,9 +30,6 @@ namespace openxr
         public const int XR_TYPE_SYSTEM_BODY_TRACKING_PROPERTIES_FB = 1000076004;
         public const int XR_TYPE_BODY_JOINT_LOCATIONS_FB = 1000076005;
         public const int XR_TYPE_BODY_SKELETON_FB = 1000076006;
-
-        ulong instance_;
-        ulong session_;
 
         internal enum XrBodyJointSetFB
         {
@@ -140,9 +137,11 @@ namespace openxr
         PFN_xrDestroyBodyTrackerFB xrDestroyBodyTrackerFB_ = null;
         PFN_xrLocateBodyJointsFB xrLocateBodyJointsFB_ = null;
 
-        ulong handle_;
+        ulong instance_;
+        ulong session_;
         public event Action SessionBegin;
         public event Action SessionEnd;
+        ulong handle_;
 
         override protected bool OnInstanceCreate(ulong xrInstance)
         {
@@ -253,7 +252,7 @@ namespace openxr
                 int retVal = xrLocateBodyJointsFB_(handle_, jli, ref joints);
                 if (retVal != 0)
                 {
-                    Debug.Log($"false: {retVal}");
+                    // Debug.Log($"false: {retVal}");
                     positions = default;
                     orientations = default;
                     return false;
@@ -264,8 +263,8 @@ namespace openxr
             orientations = new Quaternion[allJoints.Length];
             for (int c = 0; c < allJoints.Length; c++)
             {
-                positions[c] = allJoints[c].pose.position.PosToUnity();
-                orientations[c] = allJoints[c].pose.orientation.OrientationToUnity();
+                positions[c] = allJoints[c].pose.position.ToUnity();
+                orientations[c] = allJoints[c].pose.orientation.ToUnity();
             }
             return true;
         }

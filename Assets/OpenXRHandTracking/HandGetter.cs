@@ -18,46 +18,65 @@ namespace openxr
         HandTrackingFeature handTracking_ = null;
         HandTrackingMeshFeature handTrackingMesh_ = null;
         BodyTrackingFeature bodyTracking_ = null;
+        EyeTrackingFeature eyeTracking_ = null;
 
         List<Transform> body_ = new List<Transform>();
 
-        void Start()
+        public Transform leftEye_;
+        public Transform rightEye_;
+
+        bool TryGetFeature<T>(out T feature) where T : UnityEngine.XR.OpenXR.Features.OpenXRFeature
         {
-            handTracking_ = OpenXRSettings.Instance.GetFeature<HandTrackingFeature>();
+            feature = OpenXRSettings.Instance.GetFeature<T>();
             if (handTracking_ == null || handTracking_.enabled == false)
             {
-                Debug.LogError("You need to enable the openXR hand tracking support extension");
+                return false;
+            }
+            return true;
+        }
+
+        void Start()
+        {
+            if (!TryGetFeature(out handTracking_))
+            {
                 this.enabled = false;
+                Debug.LogError("You need to enable the openXR hand tracking support extension");
                 return;
             }
             handTracking_.SessionBegin += HandBegin;
             handTracking_.SessionEnd += HandEnd;
 
-            handTrackingMesh_ = OpenXRSettings.Instance.GetFeature<HandTrackingMeshFeature>();
-            if (handTrackingMesh_ == null || handTrackingMesh_.enabled == false)
+            if (!TryGetFeature(out handTrackingMesh_))
             {
                 Debug.LogError("You need to enable the openXR hand tracking mesh support extension");
                 this.enabled = false;
                 return;
             }
 
-            frameTime_ = OpenXRSettings.Instance.GetFeature<FrameTimeFeature>();
-            if (frameTime_ == null || frameTime_ == false)
+            if (!TryGetFeature(out frameTime_))
             {
                 Debug.LogError("FrameTimeFeature required");
                 this.enabled = false;
                 return;
             }
 
-            bodyTracking_ = OpenXRSettings.Instance.GetFeature<BodyTrackingFeature>();
-            if (bodyTracking_ == null || bodyTracking_ == false)
+            if (!TryGetFeature(out bodyTracking_))
             {
-                Debug.LogError("FrameTimeFeature required");
+                Debug.LogError("BodyTracking required");
                 this.enabled = false;
                 return;
             }
             bodyTracking_.SessionBegin += BodyBegin;
             bodyTracking_.SessionEnd += BodyEnd;
+
+            if (!TryGetFeature(out eyeTracking_))
+            {
+                Debug.LogError("EyeTracking required");
+                this.enabled = false;
+                return;
+            }
+            eyeTracking_.SessionBegin += EyeBegin;
+            eyeTracking_.SessionEnd += EyeEnd;
         }
 
         void HandBegin()
@@ -95,6 +114,22 @@ namespace openxr
                 GameObject.Destroy(x.gameObject);
             }
             body_.Clear();
+        }
+
+        void EyeBegin()
+        {
+            leftEye_ = GameObject.CreatePrimitive(PrimitiveType.Cube).transform;
+            leftEye_.transform.localScale = new Vector3(0.02f, 0.02f, 0.02f);
+            rightEye_ = GameObject.CreatePrimitive(PrimitiveType.Cube).transform;
+            rightEye_.transform.localScale = new Vector3(0.02f, 0.02f, 0.02f);
+        }
+
+        void EyeEnd()
+        {
+            GameObject.Destroy(leftEye_.gameObject);
+            leftEye_ = null;
+            GameObject.Destroy(rightEye_.gameObject);
+            rightEye_ = null;
         }
 
         void Update()
@@ -177,6 +212,21 @@ namespace openxr
                         body_[c].position = positions[c];
                         body_[c].rotation = orientations[c];
                     }
+                }
+            }
+
+            if (leftEye_ != null && rightEye_ != null)
+            {
+                Vector3 lp;
+                Quaternion lr;
+                Vector3 rp;
+                Quaternion rr;
+                if (eyeTracking_.TryGetGaze(out lp, out lr, out rp, out rr))
+                {
+                    leftEye_.position = lp;
+                    leftEye_.rotation = lr;
+                    rightEye_.position = rp;
+                    rightEye_.rotation = rr;
                 }
             }
         }

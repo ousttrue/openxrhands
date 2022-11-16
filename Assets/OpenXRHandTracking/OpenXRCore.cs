@@ -45,7 +45,7 @@ namespace openxr
         public float y;
         public float z;
 
-        public Vector3 PosToUnity()
+        public Vector3 ToUnity()
         {
             return new Vector3(x, y, -z);
         }
@@ -65,7 +65,7 @@ namespace openxr
         public float z;
         public float w;
 
-        public Quaternion OrientationToUnity()
+        public Quaternion ToUnity()
         {
             return new Quaternion(x, y, -z, -w);
         }

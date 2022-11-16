@@ -287,9 +287,9 @@ namespace openxr
                 XrVector3f pos = meshArrays.vertexPositions[c];
                 XrVector2f uv = meshArrays.vertexUVs[c];
                 XrVector3f normal = meshArrays.vertexNormals[c];
-                vertices[c] = pos.PosToUnity();
+                vertices[c] = pos.ToUnity();
                 uvs[c] = new Vector2(uv.x, uv.y);
-                normals[c] = normal.PosToUnity();
+                normals[c] = normal.ToUnity();
                 weights[c].boneIndex0 = meshArrays.vertexBlendIndices[c].x;
                 weights[c].boneIndex1 = meshArrays.vertexBlendIndices[c].y;
                 weights[c].boneIndex2 = meshArrays.vertexBlendIndices[c].z;
@@ -324,8 +324,8 @@ namespace openxr
             {
                 XrPosef joint = meshArrays.jointBindPoses[c];
                 XrPosef pose = meshArrays.jointBindPoses[c];
-                bones[c].transform.position = pose.position.PosToUnity();
-                bones[c].transform.rotation = pose.orientation.OrientationToUnity();
+                bones[c].transform.position = pose.position.ToUnity();
+                bones[c].transform.rotation = pose.orientation.ToUnity();
                 bones[c].transform.localScale = new Vector3(meshArrays.jointRadii[c], meshArrays.jointRadii[c], meshArrays.jointRadii[c]);
 
                 if (meshArrays.jointParents[c] < mesh.jointCountOutput)
