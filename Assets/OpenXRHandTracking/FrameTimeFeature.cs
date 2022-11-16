@@ -89,6 +89,7 @@ namespace openxr
 
         int xrGetInstanceProcAddr_HOOK(ulong instance, string name, out IntPtr function)
         {
+            // Debug.Log($"HookGetInstanceProcAddr: {name}");
             if (name == "xrWaitFrame")
             {
                 IntPtr fp;

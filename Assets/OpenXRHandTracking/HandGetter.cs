@@ -12,8 +12,9 @@ namespace openxr
         public GameObject leftHand_;
         public GameObject rightHand_;
 
-        HandTrackingFeature handTracking_ = null;
         FrameTimeFeature frameTime_ = null;
+        HandTrackingFeature handTracking_ = null;
+        HandTrackingMeshFeature handTrackingMesh_ = null;
 
         void Start()
         {
@@ -21,6 +22,14 @@ namespace openxr
             if (handTracking_ == null || handTracking_.enabled == false)
             {
                 Debug.LogError("You need to enable the openXR hand tracking support extension");
+                this.enabled = false;
+                return;
+            }
+
+            handTrackingMesh_ = OpenXRSettings.Instance.GetFeature<HandTrackingMeshFeature>();
+            if (handTrackingMesh_ == null || handTrackingMesh_.enabled == false)
+            {
+                Debug.LogError("You need to enable the openXR hand tracking mesh support extension");
                 this.enabled = false;
                 return;
             }
@@ -67,7 +76,7 @@ namespace openxr
                     if (leftHand_ == null)
                     {
                         {
-                            leftHand_ = handTracking_.CreateHandMesh(transform, HandMaterial, handle, "_lh");
+                            leftHand_ = handTrackingMesh_.CreateHandMesh(transform, HandMaterial, handle, "_lh");
                             if (leftHand_ != null)
                             {
                                 Debug.Log(leftHand_);
@@ -76,7 +85,21 @@ namespace openxr
                     }
                     else
                     {
-                        handTracking_.ApplyHandJointsToMesh(frameTime_.FrameTime, handle, leftHand_);
+                        Transform[] bones = leftHand_.GetComponent<SkinnedMeshRenderer>().bones;
+                        float[] radius;
+                        Vector3[] positions;
+                        Quaternion[] orientations;
+                        if (handTracking_.TryGetHandJoints(frameTime_.FrameTime, handle, out positions, out orientations, out radius))
+                        {
+                            if (radius.Length == bones.Length && radius[0] > 0)
+                            {
+                                for (int c = 0; c < bones.Length; c++)
+                                {
+                                    bones[c].position = positions[c];
+                                    bones[c].rotation = orientations[c];
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -87,7 +110,7 @@ namespace openxr
                 {
                     if (rightHand_ == null)
                     {
-                        rightHand_ = handTracking_.CreateHandMesh(transform, HandMaterial, handle, "_rh");
+                        rightHand_ = handTrackingMesh_.CreateHandMesh(transform, HandMaterial, handle, "_rh");
                         if (rightHand_ != null)
                         {
                             Debug.Log(rightHand_);
@@ -95,7 +118,22 @@ namespace openxr
                     }
                     else
                     {
-                        handTracking_.ApplyHandJointsToMesh(frameTime_.FrameTime, handle, rightHand_);
+                        // handTrackingMesh_.ApplyHandJointsToMesh(frameTime_.FrameTime, handle, rightHand_);
+                        Transform[] bones = rightHand_.GetComponent<SkinnedMeshRenderer>().bones;
+                        float[] radius;
+                        Vector3[] positions;
+                        Quaternion[] orientations;
+                        if (handTracking_.TryGetHandJoints(frameTime_.FrameTime, handle, out positions, out orientations, out radius))
+                        {
+                            if (radius.Length == bones.Length && radius[0] > 0)
+                            {
+                                for (int c = 0; c < bones.Length; c++)
+                                {
+                                    bones[c].position = positions[c];
+                                    bones[c].rotation = orientations[c];
+                                }
+                            }
+                        }
                     }
                 }
             }
