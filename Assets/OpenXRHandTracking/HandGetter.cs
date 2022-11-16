@@ -60,30 +60,44 @@ namespace openxr
 
         void Update()
         {
-            if (leftHand_ == null)
             {
-                leftHand_ = handTracking_.CreateHandMesh(HandTrackingFeature.Hand_Index.L, transform, HandMaterial);
-                if (leftHand_ != null)
+                var handle = handTracking_.GetHandle(HandTrackingFeature.Hand_Index.L);
+                if (handle != 0)
                 {
-                    Debug.Log(leftHand_);
+                    if (leftHand_ == null)
+                    {
+                        {
+                            leftHand_ = handTracking_.CreateHandMesh(transform, HandMaterial, handle, "_lh");
+                            if (leftHand_ != null)
+                            {
+                                Debug.Log(leftHand_);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        handTracking_.ApplyHandJointsToMesh(frameTime_.FrameTime, handle, leftHand_);
+                    }
                 }
-            }
-            else
-            {
-                handTracking_.ApplyHandJointsToMesh(frameTime_.FrameTime, HandTrackingFeature.Hand_Index.L, leftHand_);
             }
 
-            if (rightHand_ == null)
             {
-                rightHand_ = handTracking_.CreateHandMesh(HandTrackingFeature.Hand_Index.R, transform, HandMaterial);
-                if (rightHand_ != null)
+                var handle = handTracking_.GetHandle(HandTrackingFeature.Hand_Index.R);
+                if (handle != 0)
                 {
-                    Debug.Log(rightHand_);
+                    if (rightHand_ == null)
+                    {
+                        rightHand_ = handTracking_.CreateHandMesh(transform, HandMaterial, handle, "_rh");
+                        if (rightHand_ != null)
+                        {
+                            Debug.Log(rightHand_);
+                        }
+                    }
+                    else
+                    {
+                        handTracking_.ApplyHandJointsToMesh(frameTime_.FrameTime, handle, rightHand_);
+                    }
                 }
-            }
-            else
-            {
-                handTracking_.ApplyHandJointsToMesh(frameTime_.FrameTime, HandTrackingFeature.Hand_Index.R, rightHand_);
             }
         }
     }

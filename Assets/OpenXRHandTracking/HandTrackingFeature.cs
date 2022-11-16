@@ -47,17 +47,17 @@ namespace openxr
             Debug.Log("delete");
         }
 
-        Vector3 PosToUnity(XrVector3f pos)
+        static Vector3 PosToUnity(XrVector3f pos)
         {
             return new Vector3(pos.x, pos.y, -pos.z);
         }
 
-        Quaternion OrientationToUnity(XrVector4f ori)
+        static Quaternion OrientationToUnity(XrVector4f ori)
         {
             return new Quaternion(ori.x, ori.y, -ori.z, -ori.w);
         }
 
-        ulong GetHandle(Hand_Index hand)
+        public ulong GetHandle(Hand_Index hand)
         {
             switch (hand)
             {
@@ -297,47 +297,47 @@ namespace openxr
             instance_ = 0;
         }
 
-        public void GetHandJoints(long frame_time, Hand_Index hand, out Vector3[] positions, out Quaternion[] orientations, out float[] radius)
+        public bool TryGetHandJoints(long frame_time, ulong handle, out Vector3[] positions, out Quaternion[] orientations, out float[] radius)
         {
-            var handle = GetHandle(hand);
-            if (handle != 0)
+            if (handle == 0)
             {
-                XrHandJointLocationEXT[] allJoints = new XrHandJointLocationEXT[26];
-                XrHandJointsLocateInfoEXT jli = new XrHandJointsLocateInfoEXT(OpenXRFeature.GetCurrentAppSpace(), frame_time);
-                XrHandJointLocationsEXT joints = new XrHandJointLocationsEXT(ref allJoints);
-                // Type_xrLocateHandJointsEXT fp = GetInstanceProc<Type_xrLocateHandJointsEXT>("xrLocateHandJointsEXT");
-                // if (fp != null)
+                positions = default;
+                orientations = default;
+                radius = default;
+                return false;
+            }
+
+            XrHandJointLocationEXT[] allJoints = new XrHandJointLocationEXT[26];
+            XrHandJointsLocateInfoEXT jli = new XrHandJointsLocateInfoEXT(OpenXRFeature.GetCurrentAppSpace(), frame_time);
+            XrHandJointLocationsEXT joints = new XrHandJointLocationsEXT(ref allJoints);
+            int retVal = xrLocateHandJointsEXT(handle, jli, ref joints);
+            joints.Unpin();
+            if (retVal != 0)
+            {
+                positions = default;
+                orientations = default;
+                radius = default;
+                return false;
+            }
+
+            positions = new Vector3[allJoints.Length];
+            orientations = new Quaternion[allJoints.Length];
+            radius = new float[allJoints.Length];
+            for (int c = 0; c < allJoints.Length; c++)
+            {
+                positions[c] = PosToUnity(allJoints[c].pose.position);
+                orientations[c] = OrientationToUnity(allJoints[c].pose.orientation);
+                if ((allJoints[c].locationFlags & 0x3) == 0)
                 {
-                    int retVal = xrLocateHandJointsEXT(handle, jli, ref joints);
-                    joints.Unpin();
-                    if (retVal == 0)
-                    {
-                        positions = new Vector3[allJoints.Length];
-                        orientations = new Quaternion[allJoints.Length];
-                        radius = new float[allJoints.Length];
-                        for (int c = 0; c < allJoints.Length; c++)
-                        {
-                            positions[c] = PosToUnity(allJoints[c].pose.position);
-                            orientations[c] = OrientationToUnity(allJoints[c].pose.orientation);
-                            if ((allJoints[c].locationFlags & 0x3) == 0)
-                            {
-                                radius[c] = 0f;
-                            }
-                            else
-                            {
-                                radius[c] = allJoints[c].radius;
-                            }
-                        }
-                        return;
-                    }
+                    radius[c] = 0f;
+                }
+                else
+                {
+                    radius[c] = allJoints[c].radius;
                 }
             }
-            // no tracking yet - return zero arrays
-            positions = new Vector3[0];
-            orientations = new Quaternion[0];
-            radius = new float[0];
+            return true;
         }
-
 
         /********************************************************* HAND MESH (oculus specific) STUFF BELOW *********************************/
 
@@ -570,26 +570,8 @@ namespace openxr
             XrHandTrackingMeshFB*                       mesh);*/
         internal delegate int Type_xrGetHandMeshFB(ulong handTracker, ref XrHandTrackingMeshFB mesh);
 
-        public GameObject CreateHandMesh(Hand_Index hand, Transform parent, Material mat)
+        public GameObject CreateHandMesh(Transform parent, Material mat, ulong handle, string bone_postfix)
         {
-            ulong handle = 0;
-            string bone_postfix = "";
-            if (hand == Hand_Index.L)
-            {
-                handle = handle_left;
-                bone_postfix = "_lh";
-            }
-            else
-            {
-                handle = handle_right;
-                bone_postfix = "_rh";
-            }
-            if (handle == 0)
-            {
-                // Debug.LogError("no handle");
-                return null;
-            }
-
             XrHandTrackingMeshFB meshZero = new XrHandTrackingMeshFB(0, 0, 0);
             // find size of mesh
             // Type_xrGetHandMeshFB mesh_get_fn = GetInstanceProc<Type_xrGetHandMeshFB>("xrGetHandMeshFB");
@@ -604,7 +586,7 @@ namespace openxr
             }
 
             // construct mesh and bones and skin it correctly
-            var handObj = new GameObject((hand == Hand_Index.L) ? "lhand" : "rhand");
+            var handObj = new GameObject();
             handObj.transform.parent = parent;
             SkinnedMeshRenderer rend = handObj.AddComponent<SkinnedMeshRenderer>();
 
@@ -684,16 +666,15 @@ namespace openxr
             return handObj;
         }
 
-        public void ApplyHandJointsToMesh(long frame_time, Hand_Index hand, GameObject handObj)
+        public void ApplyHandJointsToMesh(long frame_time, ulong handle, GameObject handObj)
         {
-            var handle = GetHandle(hand);
-            if (handObj != null)
+            Transform[] bones = handObj.GetComponent<SkinnedMeshRenderer>().bones;
+            float[] radius;
+            Vector3[] positions;
+            Quaternion[] orientations;
+
+            if (TryGetHandJoints(frame_time, handle, out positions, out orientations, out radius))
             {
-                Transform[] bones = handObj.GetComponent<SkinnedMeshRenderer>().bones;
-                float[] radius;
-                Vector3[] positions;
-                Quaternion[] orientations;
-                GetHandJoints(frame_time, hand, out positions, out orientations, out radius);
                 if (radius.Length == bones.Length && radius[0] > 0)
                 {
                     for (int c = 0; c < bones.Length; c++)
