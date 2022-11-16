@@ -1,16 +1,17 @@
 using System.Collections.Generic;
 using UnityEngine.XR.OpenXR.Features;
 using UnityEngine;
-using UnityEditor;
 using System.Runtime.InteropServices;
 using System;
 using UnityEngine.XR.OpenXR;
+
 
 namespace openxr
 {
 #if UNITY_EDITOR
     [UnityEditor.XR.OpenXR.Features.OpenXRFeature(UiName = "Hand tracking mesh Extension",
-        BuildTargetGroups = new[] { BuildTargetGroup.Standalone, BuildTargetGroup.WSA, BuildTargetGroup.Android },
+        BuildTargetGroups = new[] { 
+            UnityEditor.BuildTargetGroup.Standalone, UnityEditor.BuildTargetGroup.WSA, UnityEditor.BuildTargetGroup.Android },
         Company = "Joe M",
         Desc = "Enable hand tracking mesh in unity",
         DocumentationLink = "https://docs.unity3d.com/Packages/com.unity.xr.openxr@0.1/manual/index.html",
@@ -22,7 +23,7 @@ namespace openxr
     {
         public const string featureId = "com.joemarshall.handtracking_mesh";
         public const string xr_extension = "XR_FB_hand_tracking_mesh";
-        FrameTimeFeature.Type_xrGetInstanceProcAddr xrGetInstanceProcAddr_;
+        PFN_xrGetInstanceProcAddr xrGetInstanceProcAddr_;
 
         ulong instance_;
         ulong session_;
@@ -31,14 +32,14 @@ namespace openxr
         // in something outside the main structure
         internal class HandMeshArrays
         {
-            public HandTrackingFeature.XrPosef[] jointBindPoses;
+            public XrPosef[] jointBindPoses;
             public float[] jointRadii;
             public int[] jointParents;
-            public HandTrackingFeature.XrVector3f[] vertexPositions;
-            public HandTrackingFeature.XrVector3f[] vertexNormals;
-            public HandTrackingFeature.XrVector2f[] vertexUVs;
+            public XrVector3f[] vertexPositions;
+            public XrVector3f[] vertexNormals;
+            public XrVector2f[] vertexUVs;
             public XrVector4sFB[] vertexBlendIndices;
-            public HandTrackingFeature.XrVector4f[] vertexBlendWeights;
+            public XrVector4f[] vertexBlendWeights;
             public short[] indices;
 
 
@@ -46,14 +47,14 @@ namespace openxr
 
             public HandMeshArrays(uint joints, uint vertices, uint indexCount, ref XrHandTrackingMeshFB owner)
             {
-                jointBindPoses = new HandTrackingFeature.XrPosef[joints];
+                jointBindPoses = new XrPosef[joints];
                 jointRadii = new float[joints];
                 jointParents = new int[joints];
-                vertexPositions = new HandTrackingFeature.XrVector3f[vertices];
-                vertexNormals = new HandTrackingFeature.XrVector3f[vertices];
-                vertexUVs = new HandTrackingFeature.XrVector2f[vertices];
+                vertexPositions = new XrVector3f[vertices];
+                vertexNormals = new XrVector3f[vertices];
+                vertexUVs = new XrVector2f[vertices];
                 vertexBlendIndices = new XrVector4sFB[vertices];
-                vertexBlendWeights = new HandTrackingFeature.XrVector4f[vertices];
+                vertexBlendWeights = new XrVector4f[vertices];
                 indices = new short[indexCount];
                 GCHandle[] pinnedArrays =
                 {
@@ -229,7 +230,7 @@ namespace openxr
                 return false;
             }
 
-            xrGetInstanceProcAddr_ = Marshal.GetDelegateForFunctionPointer<FrameTimeFeature.Type_xrGetInstanceProcAddr>(xrGetInstanceProcAddr);
+            xrGetInstanceProcAddr_ = Marshal.GetDelegateForFunctionPointer<PFN_xrGetInstanceProcAddr>(xrGetInstanceProcAddr);
 
             return true;
         }
@@ -244,7 +245,7 @@ namespace openxr
             session_ = session;
             Debug.Log($"{featureId}: {instance_}.{session_}");
 
-            var getInstanceProcAddr = Marshal.GetDelegateForFunctionPointer<FrameTimeFeature.Type_xrGetInstanceProcAddr>(xrGetInstanceProcAddr);
+            var getInstanceProcAddr = Marshal.GetDelegateForFunctionPointer<PFN_xrGetInstanceProcAddr>(xrGetInstanceProcAddr);
             Func<string, IntPtr> getAddr = (string name) =>
             {
                 IntPtr ptr;
@@ -283,9 +284,9 @@ namespace openxr
             int[] triangles = new int[mesh.indexCountOutput];
             for (int c = 0; c < mesh.vertexCountOutput; c++)
             {
-                HandTrackingFeature.XrVector3f pos = meshArrays.vertexPositions[c];
-                HandTrackingFeature.XrVector2f uv = meshArrays.vertexUVs[c];
-                HandTrackingFeature.XrVector3f normal = meshArrays.vertexNormals[c];
+                XrVector3f pos = meshArrays.vertexPositions[c];
+                XrVector2f uv = meshArrays.vertexUVs[c];
+                XrVector3f normal = meshArrays.vertexNormals[c];
                 vertices[c] = pos.PosToUnity();
                 uvs[c] = new Vector2(uv.x, uv.y);
                 normals[c] = normal.PosToUnity();
@@ -321,8 +322,8 @@ namespace openxr
             }
             for (int c = 0; c < mesh.jointCountOutput; c++)
             {
-                HandTrackingFeature.XrPosef joint = meshArrays.jointBindPoses[c];
-                HandTrackingFeature.XrPosef pose = meshArrays.jointBindPoses[c];
+                XrPosef joint = meshArrays.jointBindPoses[c];
+                XrPosef pose = meshArrays.jointBindPoses[c];
                 bones[c].transform.position = pose.position.PosToUnity();
                 bones[c].transform.rotation = pose.orientation.OrientationToUnity();
                 bones[c].transform.localScale = new Vector3(meshArrays.jointRadii[c], meshArrays.jointRadii[c], meshArrays.jointRadii[c]);

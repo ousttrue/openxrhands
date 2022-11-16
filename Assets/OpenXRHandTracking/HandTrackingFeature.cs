@@ -1,15 +1,16 @@
 using UnityEngine.XR.OpenXR.Features;
 using UnityEngine;
-using UnityEditor;
 using System.Runtime.InteropServices;
 using System;
 using UnityEngine.XR.OpenXR;
+
 
 namespace openxr
 {
 #if UNITY_EDITOR
     [UnityEditor.XR.OpenXR.Features.OpenXRFeature(UiName = "Hand tracking Extension",
-        BuildTargetGroups = new[] { BuildTargetGroup.Standalone, BuildTargetGroup.WSA, BuildTargetGroup.Android },
+        BuildTargetGroups = new[] { 
+            UnityEditor.BuildTargetGroup.Standalone, UnityEditor.BuildTargetGroup.WSA, UnityEditor.BuildTargetGroup.Android },
         Company = "Joe M",
         Desc = "Enable hand tracking in unity",
         DocumentationLink = "https://docs.unity3d.com/Packages/com.unity.xr.openxr@0.1/manual/index.html",
@@ -22,7 +23,7 @@ namespace openxr
         public const string featureId = "com.joemarshall.handtracking";
         public const string xr_extension = "XR_EXT_hand_tracking";
         public const int XR_HAND_JOINT_COUNT_EXT = 26;
-        FrameTimeFeature.Type_xrGetInstanceProcAddr xrGetInstanceProcAddr_;
+        PFN_xrGetInstanceProcAddr xrGetInstanceProcAddr_;
 
         public const int XR_TYPE_HAND_TRACKER_CREATE_INFO_EXT = 1000051001;
         public const int XR_TYPE_HAND_JOINTS_LOCATE_INFO_EXT = 1000051002;
@@ -82,73 +83,8 @@ namespace openxr
             public long time;
         };
 
-        internal enum XrSpaceLocationFlags : int
-        {
-            XR_SPACE_LOCATION_ORIENTATION_VALID_BIT = 0x00000001,
-            XR_SPACE_LOCATION_POSITION_VALID_BIT = 0x00000002,
-            XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT = 0x00000004,
-            XR_SPACE_LOCATION_POSITION_TRACKED_BIT = 0x00000008
-        };
 
-        /*typedef struct XrVector2f {
-            float    x;
-            float    y;
-        } XrVector2f;*/
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct XrVector2f
-        {
-            public float x;
-            public float y;
-        }
 
-        /*typedef struct XrVector3f {
-            float    x;
-            float    y;
-            float    z;
-        } XrVector3f;*/
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct XrVector3f
-        {
-            public float x;
-            public float y;
-            public float z;
-
-            public Vector3 PosToUnity()
-            {
-                return new Vector3(x, y, -z);
-            }
-        }
-
-        /*typedef struct XrVector4f {
-            float    x;
-            float    y;
-            float    z;
-            float    w;
-        } XrVector4f;*/
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct XrVector4f
-        {
-            public float x;
-            public float y;
-            public float z;
-            public float w;
-
-            public Quaternion OrientationToUnity()
-            {
-                return new Quaternion(x, y, -z, -w);
-            }
-        }
-
-        /*typedef struct XrPosef {
-            XrQuaternionf    orientation;
-            XrVector3f       position;
-        } XrPosef;*/
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct XrPosef
-        {
-            public XrVector4f orientation;
-            public XrVector3f position;
-        }
 
         /*
         typedef struct XrHandJointLocationEXT {
@@ -226,7 +162,7 @@ namespace openxr
                 return false;
             }
 
-            xrGetInstanceProcAddr_ = Marshal.GetDelegateForFunctionPointer<FrameTimeFeature.Type_xrGetInstanceProcAddr>(xrGetInstanceProcAddr);
+            xrGetInstanceProcAddr_ = Marshal.GetDelegateForFunctionPointer<PFN_xrGetInstanceProcAddr>(xrGetInstanceProcAddr);
             return true;
         }
 

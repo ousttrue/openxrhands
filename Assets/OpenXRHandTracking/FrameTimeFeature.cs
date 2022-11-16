@@ -1,7 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine.XR.OpenXR.Features;
-using UnityEngine;
-using UnityEditor;
 using System.Runtime.InteropServices;
 using System;
 using AOT;
@@ -15,7 +13,8 @@ namespace openxr
     /// <value></value>
 #if UNITY_EDITOR
     [UnityEditor.XR.OpenXR.Features.OpenXRFeature(UiName = "Frame time",
-        BuildTargetGroups = new[] { BuildTargetGroup.Standalone, BuildTargetGroup.WSA, BuildTargetGroup.Android },
+        BuildTargetGroups = new[] {
+            UnityEditor.BuildTargetGroup.Standalone, UnityEditor.BuildTargetGroup.WSA, UnityEditor.BuildTargetGroup.Android },
         Company = "Joe M",
         Desc = "Enable hand tracking in unity",
         DocumentationLink = "https://docs.unity3d.com/Packages/com.unity.xr.openxr@0.1/manual/index.html",
@@ -26,12 +25,7 @@ namespace openxr
     {
         public const string featureId = "com.joemarshall.frametime";
 
-        /*XrResult xrGetInstanceProcAddr(
-            XrInstance                                  instance,
-            const char*                                 name,
-            PFN_xrVoidFunction*                         function);*/
-        internal delegate int Type_xrGetInstanceProcAddr(ulong instance, [MarshalAs(UnmanagedType.LPStr)] string name, out IntPtr function);
-        Type_xrGetInstanceProcAddr mOldProc;
+        PFN_xrGetInstanceProcAddr mOldProc;
 
         /*
         typedef struct XrFrameWaitInfo {
@@ -74,7 +68,7 @@ namespace openxr
         public long FrameTime => frame_time;
         List<Delegate> callbacks = new List<Delegate>();
 
-        [MonoPInvokeCallback(typeof(Type_xrGetInstanceProcAddr))]
+        [MonoPInvokeCallback(typeof(PFN_xrGetInstanceProcAddr))]
         int xrGetInstanceProcAddr_HOOK_STATIC(ulong instance, string name, out IntPtr function)
         {
             return xrGetInstanceProcAddr_HOOK(instance, name, out function);
@@ -119,11 +113,9 @@ namespace openxr
 
         protected override IntPtr HookGetInstanceProcAddr(IntPtr func)
         {
-            mOldProc = (Type_xrGetInstanceProcAddr)Marshal.GetDelegateForFunctionPointer(
-                xrGetInstanceProcAddr, typeof(Type_xrGetInstanceProcAddr));
-
-            return GetCallback<Type_xrGetInstanceProcAddr>(
-                new Type_xrGetInstanceProcAddr(xrGetInstanceProcAddr_HOOK_STATIC));
+            mOldProc = Marshal.GetDelegateForFunctionPointer<PFN_xrGetInstanceProcAddr>(
+                xrGetInstanceProcAddr);
+            return GetCallback(new PFN_xrGetInstanceProcAddr(xrGetInstanceProcAddr_HOOK_STATIC));
         }
     }
 }

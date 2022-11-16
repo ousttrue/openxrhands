@@ -1,16 +1,17 @@
 
 using System;
 using System.Runtime.InteropServices;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.XR.OpenXR;
 using UnityEngine.XR.OpenXR.Features;
+
 
 namespace openxr
 {
 #if UNITY_EDITOR
     [UnityEditor.XR.OpenXR.Features.OpenXRFeature(UiName = "Body tracking Extension",
-        BuildTargetGroups = new[] { BuildTargetGroup.Standalone, BuildTargetGroup.Android },
+        BuildTargetGroups = new[] { 
+            UnityEditor.BuildTargetGroup.Standalone, UnityEditor.BuildTargetGroup.Android },
         Company = "Ousttrue",
         Desc = "Enable body tracking in unity",
         DocumentationLink = "https://developer.oculus.com/documentation/native/android/move-body-tracking/",
@@ -95,8 +96,8 @@ namespace openxr
         [StructLayout(LayoutKind.Sequential)]
         internal struct XrBodyJointLocationFB
         {
-            public HandTrackingFeature.XrSpaceLocationFlags locationFlags;
-            public HandTrackingFeature.XrPosef pose;
+            public XrSpaceLocationFlags locationFlags;
+            public XrPosef pose;
         }
 
         /*
@@ -168,7 +169,7 @@ namespace openxr
             session_ = session;
             Debug.Log($"{featureId}: {instance_}.{session_}");
 
-            var getInstanceProcAddr = Marshal.GetDelegateForFunctionPointer<FrameTimeFeature.Type_xrGetInstanceProcAddr>(xrGetInstanceProcAddr);
+            var getInstanceProcAddr = Marshal.GetDelegateForFunctionPointer<PFN_xrGetInstanceProcAddr>(xrGetInstanceProcAddr);
             Func<string, IntPtr> getAddr = (string name) =>
             {
                 IntPtr ptr;
