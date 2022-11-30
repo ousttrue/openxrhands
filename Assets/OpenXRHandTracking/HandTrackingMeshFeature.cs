@@ -136,15 +136,16 @@ namespace openxr
             xrGetHandMeshFB = Marshal.GetDelegateForFunctionPointer<Type_xrGetHandMeshFB>(getAddr("xrGetHandMeshFB"));
         }
 
-        public GameObject CreateHandMesh(ulong handle, Material mat)
+        public GameObject CreateHandMesh(HandTrackingTracker tracker, Material mat)
         {
             var xrMesh = new XrHandTrackingMeshFB
             {
                 stype = 1000110001,
             };
+
             // find size of mesh
             // Type_xrGetHandMeshFB mesh_get_fn = GetInstanceProc<Type_xrGetHandMeshFB>("xrGetHandMeshFB");
-            var retVal = xrGetHandMeshFB(handle, ref xrMesh);
+            var retVal = xrGetHandMeshFB(tracker.handle_, ref xrMesh);
             if (retVal != 0)
             {
                 Debug.LogError($"mesh_get_fn: {retVal}");
@@ -171,7 +172,7 @@ namespace openxr
                 xrMesh.indices = data.indices.Ptr;
                 xrMesh.indexCapacityInput = xrMesh.indexCountOutput;
 
-                retVal = xrGetHandMeshFB(handle, ref xrMesh);
+                retVal = xrGetHandMeshFB(tracker.handle_, ref xrMesh);
                 if (retVal != 0)
                 {
                     Debug.LogError($"mesh_get_fn: {retVal}");
@@ -179,7 +180,7 @@ namespace openxr
                 }
 
                 // unity Mesh
-                return data.CreateSkinnedMesh();
+                return data.CreateSkinndMesh(mat);
             }
         }
     }

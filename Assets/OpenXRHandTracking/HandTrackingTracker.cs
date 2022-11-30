@@ -6,7 +6,7 @@ namespace openxr
 {
     public class HandTrackingTracker : IDisposable
     {
-        ulong handle_ = 0;
+        internal ulong handle_ = 0;
         Action disposer_;
 
         XrHandJointLocationEXT[] allJoints_;
@@ -39,6 +39,7 @@ namespace openxr
 
         public void Dispose()
         {
+            Debug.Log($"tracker.Dispose: {handle_}");
             pin_.Dispose();
             disposer_();
             handle_ = 0;

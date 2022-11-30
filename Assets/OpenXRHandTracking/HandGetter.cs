@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.OpenXR;
@@ -7,8 +8,6 @@ namespace openxr
 {
     public class HandGetter : MonoBehaviour
     {
-        [SerializeField]
-        public Material HandMaterial;
         public GameObject leftHand_;
         public GameObject rightHand_;
 
@@ -18,6 +17,11 @@ namespace openxr
 
         HandTrackingTracker left_;
         HandTrackingTracker right_;
+
+        [SerializeField]
+        public Material HandMaterial;
+        public GameObject leftMesh_;
+        public GameObject rightMesh_;
 
         static bool TryGetFeature<T>(out T feature) where T : UnityEngine.XR.OpenXR.Features.OpenXRFeature
         {
@@ -57,17 +61,32 @@ namespace openxr
         void HandBegin(HandTrackingTracker left, HandTrackingTracker right)
         {
             left_ = left;
+            if (left_ == null)
+            {
+                throw new ArgumentNullException();
+            }
+            leftMesh_ = handTrackingMesh_.CreateHandMesh(left_, HandMaterial);
+
             right_ = right;
+            if (right_ == null)
+            {
+                throw new ArgumentNullException();
+            }
+            rightMesh_ = handTrackingMesh_.CreateHandMesh(right_, HandMaterial);
         }
 
         void HandEnd()
         {
+            Debug.Log("HandEnd");
+            GameObject.Destroy(leftMesh_);
             left_ = null;
             if (leftHand_ != null)
             {
                 GameObject.Destroy(leftHand_);
                 leftHand_ = null;
             }
+
+            GameObject.Destroy(rightMesh_);
             right_ = null;
             if (rightHand_ != null)
             {

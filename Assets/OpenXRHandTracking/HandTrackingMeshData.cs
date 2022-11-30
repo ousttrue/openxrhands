@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using UnityEngine;
 
 namespace openxr
 {
@@ -60,86 +61,92 @@ namespace openxr
             indices.Dispose();
         }
 
-        public UnityEngine.GameObject CreateSkinnedMesh()
+        int VertexCount => vertexPositions.Values.Length;
+        int IndexCount => indices.Values.Length;
+        int JointCount => jointBindPoses.Values.Length;
+
+        Mesh CreateMesh()
         {
-            throw new NotImplementedException();
-            // construct mesh and bones and skin it correctly
-            // var handObj = new GameObject();
-            // handObj.transform.parent = parent;
-            // SkinnedMeshRenderer rend = handObj.AddComponent<SkinnedMeshRenderer>();
+            var handShape = new Mesh();
 
-            // Vector3[] vertices = new Vector3[mesh.vertexCountOutput];
-            // Vector3[] normals = new Vector3[mesh.vertexCountOutput];
-            // Vector2[] uvs = new Vector2[mesh.vertexCountOutput];
-            // BoneWeight[] weights = new BoneWeight[mesh.vertexCountOutput];
-            // int[] triangles = new int[mesh.indexCountOutput];
-            // for (int c = 0; c < mesh.vertexCountOutput; c++)
-            // {
-            //     XrVector3f pos = meshArrays.vertexPositions[c];
-            //     XrVector2f uv = meshArrays.vertexUVs[c];
-            //     XrVector3f normal = meshArrays.vertexNormals[c];
-            //     vertices[c] = pos.ToUnity();
-            //     uvs[c] = new Vector2(uv.x, uv.y);
-            //     normals[c] = normal.ToUnity();
-            //     weights[c].boneIndex0 = meshArrays.vertexBlendIndices[c].x;
-            //     weights[c].boneIndex1 = meshArrays.vertexBlendIndices[c].y;
-            //     weights[c].boneIndex2 = meshArrays.vertexBlendIndices[c].z;
-            //     weights[c].boneIndex3 = meshArrays.vertexBlendIndices[c].w;
-            //     weights[c].weight0 = meshArrays.vertexBlendWeights[c].x;
-            //     weights[c].weight1 = meshArrays.vertexBlendWeights[c].y;
-            //     weights[c].weight2 = meshArrays.vertexBlendWeights[c].z;
-            //     weights[c].weight3 = meshArrays.vertexBlendWeights[c].w;
-            // }
-            // for (int c = 0; c < mesh.indexCountOutput; c += 3)
-            // {
-            //     triangles[c] = meshArrays.indices[c + 2];
-            //     triangles[c + 1] = meshArrays.indices[c + 1];
-            //     triangles[c + 2] = meshArrays.indices[c];
-            // }
-            // handShape.vertices = vertices;
-            // handShape.uv = uvs;
-            // handShape.triangles = triangles;
-            // handShape.normals = normals;
-            // //            handShape.RecalculateNormals();
-            // handShape.RecalculateBounds();
-            // handShape.RecalculateTangents();
-            // Transform[] boneTransforms = new Transform[mesh.jointCountOutput];
-            // GameObject[] bones = new GameObject[mesh.jointCountOutput];
-            // Matrix4x4[] bindPoses = new Matrix4x4[mesh.jointCountOutput];
-            // // first make the bone objects - this is because parenting of bones is not always ordered 
-            // for (int c = 0; c < mesh.jointCountOutput; c++)
-            // {
-            //     bones[c] = new GameObject("Bone_" + c + bone_postfix);
-            // }
-            // for (int c = 0; c < mesh.jointCountOutput; c++)
-            // {
-            //     XrPosef joint = meshArrays.jointBindPoses[c];
-            //     XrPosef pose = meshArrays.jointBindPoses[c];
-            //     bones[c].transform.position = pose.position.ToUnity();
-            //     bones[c].transform.rotation = pose.orientation.ToUnity();
-            //     bones[c].transform.localScale = new Vector3(meshArrays.jointRadii[c], meshArrays.jointRadii[c], meshArrays.jointRadii[c]);
+            // vertices
+            var vertices = new Vector3[VertexCount];
+            var normals = new Vector3[VertexCount];
+            var uvs = new Vector2[VertexCount];
+            var weights = new BoneWeight[VertexCount];
+            for (int c = 0; c < VertexCount; c++)
+            {
+                XrVector3f pos = vertexPositions.Values[c];
+                XrVector2f uv = vertexUVs.Values[c];
+                XrVector3f normal = vertexNormals.Values[c];
+                vertices[c] = pos.ToUnity();
+                uvs[c] = new Vector2(uv.x, uv.y);
+                normals[c] = normal.ToUnity();
+                weights[c].boneIndex0 = vertexBlendIndices.Values[c].x;
+                weights[c].boneIndex1 = vertexBlendIndices.Values[c].y;
+                weights[c].boneIndex2 = vertexBlendIndices.Values[c].z;
+                weights[c].boneIndex3 = vertexBlendIndices.Values[c].w;
+                weights[c].weight0 = vertexBlendWeights.Values[c].x;
+                weights[c].weight1 = vertexBlendWeights.Values[c].y;
+                weights[c].weight2 = vertexBlendWeights.Values[c].z;
+                weights[c].weight3 = vertexBlendWeights.Values[c].w;
+            }
+            handShape.vertices = vertices;
+            handShape.uv = uvs;
+            handShape.normals = normals;
+            handShape.boneWeights = weights;
 
-            //     if (meshArrays.jointParents[c] < mesh.jointCountOutput)
-            //     {
-            //         bones[c].transform.parent = bones[meshArrays.jointParents[c]].transform;
-            //     }
-            //     else
-            //     {
-            //         bones[c].transform.parent = handObj.transform;
-            //         //rend.rootBone=bones[c].transform;
-            //     }
+            // indices
+            var triangles = new int[IndexCount];
+            for (int c = 0; c < IndexCount; c += 3)
+            {
+                triangles[c] = indices.Values[c + 2];
+                triangles[c + 1] = indices.Values[c + 1];
+                triangles[c + 2] = indices.Values[c];
+            }
+            handShape.triangles = triangles;
 
-            //     bindPoses[c] = bones[c].transform.worldToLocalMatrix;
-            //     boneTransforms[c] = bones[c].transform;
-            // }
-            // handShape.bindposes = bindPoses;
-            // handShape.boneWeights = weights;
-            // rend.sharedMesh = handShape;
-            // rend.bones = boneTransforms;
-            // rend.material = mat;
-            // rend.updateWhenOffscreen = true;
+            // handShape.RecalculateNormals();
+            handShape.RecalculateBounds();
+            handShape.RecalculateTangents();
+            return handShape;
+        }
 
-            // return handShape;
+        public GameObject CreateSkinndMesh(Material mat)
+        {
+            // first make the bone objects - this is because parenting of bones is not always ordered 
+            var bones = new Transform[JointCount];
+            for (int c = 0; c < JointCount; c++)
+            {
+                bones[c] = new GameObject($"{(HandTrackingFeature.XrHandJointEXT)c}").transform;
+            }
+            var bindPoses = new Matrix4x4[JointCount];
+
+            for (int c = 0; c < JointCount; c++)
+            {
+                XrPosef joint = jointBindPoses.Values[c];
+                XrPosef pose = jointBindPoses.Values[c];
+                bones[c].position = pose.position.ToUnity();
+                bones[c].rotation = pose.orientation.ToUnity();
+                bones[c].localScale = new Vector3(jointRadii.Values[c], jointRadii.Values[c], jointRadii.Values[c]);
+
+                if (jointParents.Values[c] < JointCount)
+                {
+                    bones[c].parent = bones[jointParents.Values[c]];
+                }
+
+                bindPoses[c] = bones[c].worldToLocalMatrix;
+            }
+
+            var handObj = new GameObject("hand");
+            var rend = handObj.AddComponent<SkinnedMeshRenderer>();
+            var handShape = CreateMesh();
+            handShape.bindposes = bindPoses;
+            rend.sharedMesh = handShape;
+            rend.bones = bones;
+            rend.material = mat;
+            rend.updateWhenOffscreen = true;
+            return handObj;
         }
     }
 }
