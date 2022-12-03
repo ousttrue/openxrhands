@@ -110,17 +110,19 @@ namespace openxr
                 return;
             }
 
-            if (leftTracker_ != null)
+            if (leftTracker_ != null && leftHand_ != null)
             {
                 if (leftTracker_.TryGetJoints(time, space, out var joints))
                 {
+                    leftHand_.SetMesh(handTrackingMesh_, leftTracker_, HandMaterial);
                     leftHand_.Update(joints);
                 }
             }
-            if (rightTracker_ != null)
+            if (rightTracker_ != null && rightHand_ != null)
             {
                 if (rightTracker_.TryGetJoints(time, space, out var joints))
                 {
+                    rightHand_.SetMesh(handTrackingMesh_, rightTracker_, HandMaterial);
                     rightHand_.Update(joints);
                 }
             }

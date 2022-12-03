@@ -21,7 +21,6 @@ namespace openxr
     {
         public const string featureId = "com.joemarshall.handtracking_mesh";
         public const string xr_extension = "XR_FB_hand_tracking_mesh";
-        PFN_xrGetInstanceProcAddr xrGetInstanceProcAddr_;
 
         ulong instance_;
         ulong session_;
@@ -61,9 +60,9 @@ namespace openxr
             int16_t*           indices;
         } XrHandTrackingMeshFB;*/
         [StructLayout(LayoutKind.Sequential)]
-        internal struct XrHandTrackingMeshFB
+        public struct XrHandTrackingMeshFB
         {
-            public int stype;
+            public XrStructureType stype;
             public IntPtr next;
             public uint jointCapacityInput;
             public uint jointCountOutput;
@@ -85,9 +84,9 @@ namespace openxr
         /*XrResult xrGetHandMeshFB(
             XrHandTrackerEXT                            handTracker,
             XrHandTrackingMeshFB*                       mesh);*/
-        internal delegate XrResult Type_xrGetHandMeshFB(ulong handTracker, ref XrHandTrackingMeshFB mesh);
-
-        Type_xrGetHandMeshFB xrGetHandMeshFB;
+        public delegate XrResult Type_xrGetHandMeshFB(ulong handTracker, ref XrHandTrackingMeshFB mesh);
+        Type_xrGetHandMeshFB xrGetHandMeshFB_;
+        public Type_xrGetHandMeshFB XrGetHandMeshFB => xrGetHandMeshFB_;
 
         public HandTrackingMeshFeature()
         {
@@ -110,8 +109,6 @@ namespace openxr
                 return false;
             }
 
-            xrGetInstanceProcAddr_ = Marshal.GetDelegateForFunctionPointer<PFN_xrGetInstanceProcAddr>(xrGetInstanceProcAddr);
-
             return true;
         }
 
@@ -132,56 +129,7 @@ namespace openxr
                 getInstanceProcAddr(instance_, name, out ptr);
                 return ptr;
             };
-
-            xrGetHandMeshFB = Marshal.GetDelegateForFunctionPointer<Type_xrGetHandMeshFB>(getAddr("xrGetHandMeshFB"));
-        }
-
-        public GameObject CreateHandMesh(HandTrackingTracker tracker, Material mat)
-        {
-            var xrMesh = new XrHandTrackingMeshFB
-            {
-                stype = 1000110001,
-            };
-
-            // find size of mesh
-            // Type_xrGetHandMeshFB mesh_get_fn = GetInstanceProc<Type_xrGetHandMeshFB>("xrGetHandMeshFB");
-            var retVal = xrGetHandMeshFB(tracker.handle_, ref xrMesh);
-            if (retVal != 0)
-            {
-                Debug.LogError($"mesh_get_fn: {retVal}");
-                return null;
-            }
-
-            // get actual mesh
-            // alloc data
-            using (var data = new HandTrackingMeshData((int)xrMesh.jointCountOutput, (int)xrMesh.vertexCountOutput, (int)xrMesh.indexCountOutput))
-            {
-                // alloc
-                xrMesh.jointBindPoses = data.jointBindPoses.Ptr;
-                xrMesh.jointRadii = data.jointRadii.Ptr;
-                xrMesh.jointParents = data.jointParents.Ptr;
-                xrMesh.jointCapacityInput = xrMesh.jointCountOutput;
-
-                xrMesh.vertexPositions = data.vertexPositions.Ptr;
-                xrMesh.vertexNormals = data.vertexNormals.Ptr;
-                xrMesh.vertexUVs = data.vertexUVs.Ptr;
-                xrMesh.vertexBlendIndices = data.vertexBlendIndices.Ptr;
-                xrMesh.vertexBlendWeights = data.vertexBlendWeights.Ptr;
-                xrMesh.vertexCapacityInput = xrMesh.vertexCountOutput;
-
-                xrMesh.indices = data.indices.Ptr;
-                xrMesh.indexCapacityInput = xrMesh.indexCountOutput;
-
-                retVal = xrGetHandMeshFB(tracker.handle_, ref xrMesh);
-                if (retVal != 0)
-                {
-                    Debug.LogError($"mesh_get_fn: {retVal}");
-                    return null;
-                }
-
-                // unity Mesh
-                return data.CreateSkinndMesh(mat);
-            }
+            xrGetHandMeshFB_ = Marshal.GetDelegateForFunctionPointer<Type_xrGetHandMeshFB>(getAddr("xrGetHandMeshFB"));
         }
     }
 }

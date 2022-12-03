@@ -8,6 +8,7 @@ namespace openxr
     {
         GameObject root_;
         Transform[] transforms_;
+        Mesh mesh_;
 
         public HandObject(string name)
         {
@@ -24,6 +25,7 @@ namespace openxr
                 }
             }
             GameObject.Destroy(root_);
+            GameObject.Destroy(mesh_);
         }
 
         public void Update(HandTrackingFeature.XrHandJointLocationEXT[] joints)
@@ -50,6 +52,29 @@ namespace openxr
                 dst.localRotation = src.pose.orientation.ToUnity();
                 dst.localScale = new Vector3(src.radius, src.radius, src.radius);
             }
+        }
+
+        public void SetMesh(HandTrackingMeshFeature feature, HandTrackingTracker tracker, Material mat)
+        {
+            if (mesh_ != null)
+            {
+                return;
+            }
+            if (feature == null)
+            {
+                return;
+            }
+            if (transforms_ == null)
+            {
+                return;
+            }
+            var renderer = HandTrackingMeshData.CreateHandMesh(feature, tracker, transforms_, mat);
+            if (renderer == null)
+            {
+                return;
+            }
+
+            mesh_ = renderer.sharedMesh;
         }
     }
 }

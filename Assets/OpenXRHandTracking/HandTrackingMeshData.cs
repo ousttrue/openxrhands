@@ -12,6 +12,7 @@ namespace openxr
 
         public PinnedArray(int length)
         {
+            Values = new T[length];
             gcPins = GCHandle.Alloc(Values, GCHandleType.Pinned);
         }
 
@@ -65,9 +66,9 @@ namespace openxr
         int IndexCount => indices.Values.Length;
         int JointCount => jointBindPoses.Values.Length;
 
-        Mesh CreateMesh()
+        Mesh CreateMesh(Matrix4x4[] bindposes)
         {
-            var handShape = new Mesh();
+            var mesh = new Mesh();
 
             // vertices
             var vertices = new Vector3[VertexCount];
@@ -91,10 +92,10 @@ namespace openxr
                 weights[c].weight2 = vertexBlendWeights.Values[c].z;
                 weights[c].weight3 = vertexBlendWeights.Values[c].w;
             }
-            handShape.vertices = vertices;
-            handShape.uv = uvs;
-            handShape.normals = normals;
-            handShape.boneWeights = weights;
+            mesh.vertices = vertices;
+            mesh.uv = uvs;
+            mesh.normals = normals;
+            mesh.boneWeights = weights;
 
             // indices
             var triangles = new int[IndexCount];
@@ -104,22 +105,18 @@ namespace openxr
                 triangles[c + 1] = indices.Values[c + 1];
                 triangles[c + 2] = indices.Values[c];
             }
-            handShape.triangles = triangles;
+            mesh.triangles = triangles;
+
+            mesh.bindposes = bindposes;
 
             // handShape.RecalculateNormals();
-            handShape.RecalculateBounds();
-            handShape.RecalculateTangents();
-            return handShape;
+            mesh.RecalculateBounds();
+            mesh.RecalculateTangents();
+            return mesh;
         }
 
-        public GameObject CreateSkinndMesh(Material mat)
+        public SkinnedMeshRenderer CreateSkinndMesh(Transform[] bones, Material mat)
         {
-            // first make the bone objects - this is because parenting of bones is not always ordered 
-            var bones = new Transform[JointCount];
-            for (int c = 0; c < JointCount; c++)
-            {
-                bones[c] = new GameObject($"{(HandTrackingFeature.XrHandJointEXT)c}").transform;
-            }
             var bindPoses = new Matrix4x4[JointCount];
 
             for (int c = 0; c < JointCount; c++)
@@ -130,23 +127,81 @@ namespace openxr
                 bones[c].rotation = pose.orientation.ToUnity();
                 bones[c].localScale = new Vector3(jointRadii.Values[c], jointRadii.Values[c], jointRadii.Values[c]);
 
-                if (jointParents.Values[c] < JointCount)
-                {
-                    bones[c].parent = bones[jointParents.Values[c]];
-                }
+                // if (jointParents.Values[c] < JointCount)
+                // {
+                //     bones[c].parent = bones[jointParents.Values[c]];
+                // }
 
                 bindPoses[c] = bones[c].worldToLocalMatrix;
             }
 
-            var handObj = new GameObject("hand");
-            var rend = handObj.AddComponent<SkinnedMeshRenderer>();
-            var handShape = CreateMesh();
-            handShape.bindposes = bindPoses;
-            rend.sharedMesh = handShape;
-            rend.bones = bones;
-            rend.material = mat;
-            rend.updateWhenOffscreen = true;
-            return handObj;
+            var bone0 = bones[0].gameObject;
+            var renderer = bone0.AddComponent<SkinnedMeshRenderer>();
+            renderer.sharedMesh = CreateMesh(bindPoses);
+            renderer.bones = bones;
+            renderer.material = mat;
+            renderer.updateWhenOffscreen = true;
+            return renderer;
+        }
+
+        public static SkinnedMeshRenderer CreateHandMesh(HandTrackingMeshFeature feature, HandTrackingTracker tracker, Transform[] bones, Material mat)
+        {
+            var xrMesh = new HandTrackingMeshFeature.XrHandTrackingMeshFB
+            {
+                stype = XrStructureType.XR_TYPE_HAND_TRACKING_MESH_FB,
+            };
+
+            // find size of mesh
+            // Type_xrGetHandMeshFB mesh_get_fn = GetInstanceProc<Type_xrGetHandMeshFB>("xrGetHandMeshFB");
+            var retVal = feature.XrGetHandMeshFB(tracker.handle_, ref xrMesh);
+            if (retVal != XrResult.XR_SUCCESS)
+            {
+                Debug.LogError($"XrGetHandMeshFB1: {retVal}");
+                return null;
+            }
+
+            return CreateHandMesh(feature, tracker, bones, mat,
+                (int)xrMesh.jointCountOutput, (int)xrMesh.vertexCountOutput, (int)xrMesh.indexCountOutput);
+        }
+
+        static SkinnedMeshRenderer CreateHandMesh(HandTrackingMeshFeature feature, HandTrackingTracker tracker, Transform[] bones, Material mat,
+            int jointCount, int vertexCount, int indexCount)
+        {
+            // get actual mesh
+            // alloc data
+            using (var data = new HandTrackingMeshData(jointCount, vertexCount, indexCount))
+            {
+                // alloc
+                var xrMesh = new HandTrackingMeshFeature.XrHandTrackingMeshFB
+                {
+                    stype = XrStructureType.XR_TYPE_HAND_TRACKING_MESH_FB,
+                    jointBindPoses = data.jointBindPoses.Ptr,
+                    jointRadii = data.jointRadii.Ptr,
+                    jointParents = data.jointParents.Ptr,
+                    jointCapacityInput = (uint)jointCount,
+                    // jointCountOutput = (uint)jointCount,
+                    vertexPositions = data.vertexPositions.Ptr,
+                    vertexNormals = data.vertexNormals.Ptr,
+                    vertexUVs = data.vertexUVs.Ptr,
+                    vertexBlendIndices = data.vertexBlendIndices.Ptr,
+                    vertexBlendWeights = data.vertexBlendWeights.Ptr,
+                    vertexCapacityInput = (uint)vertexCount,
+                    // vertexCountOutput = (uint)vertexCount,
+                    indices = data.indices.Ptr,
+                    indexCapacityInput = (uint)indexCount,
+                    // indexCountOutput = (uint)indexCount,
+                };
+
+                var retVal = feature.XrGetHandMeshFB(tracker.handle_, ref xrMesh);
+                if (retVal != XrResult.XR_SUCCESS)
+                {
+                    Debug.LogError($"XrGetHandMeshFB2: {retVal}");
+                    return null;
+                }
+
+                // unity Mesh
+                return data.CreateSkinndMesh(bones, mat);
+            }
         }
     }
 }
