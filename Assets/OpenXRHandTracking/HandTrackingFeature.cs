@@ -24,10 +24,6 @@ namespace openxr
         public const string xr_extension = "XR_EXT_hand_tracking";
         public const int XR_HAND_JOINT_COUNT_EXT = 26;
 
-        public const int XR_TYPE_HAND_TRACKER_CREATE_INFO_EXT = 1000051001;
-        public const int XR_TYPE_HAND_JOINTS_LOCATE_INFO_EXT = 1000051002;
-        public const int XR_TYPE_HAND_JOINT_LOCATIONS_EXT = 1000051003;
-
         public enum XrHandEXT
         {
             XR_HAND_LEFT_EXT = 1,
@@ -66,24 +62,43 @@ namespace openxr
             XR_HAND_JOINT_MAX_ENUM_EXT = 0x7FFFFFFF
         }
 
+        // Provided by XR_EXT_hand_tracking
+        public enum XrHandJointSetEXT
+        {
+            XR_HAND_JOINT_SET_DEFAULT_EXT = 0,
+            // Provided by XR_ULTRALEAP_hand_tracking_forearm
+            XR_HAND_JOINT_SET_HAND_WITH_FOREARM_ULTRALEAP = 1000149000,
+            XR_HAND_JOINT_SET_MAX_ENUM_EXT = 0x7FFFFFFF
+        };
+
         // get the address of the hand tracking functions using: OpenXRFeature.xrGetInstanceProcAddr
+        /*typedef struct XrHandTrackerCreateInfoEXT {
+            XrStructureType      type;
+            const void*          next;
+            XrHandEXT            hand;
+            XrHandJointSetEXT    handJointSet;
+        } XrHandTrackerCreateInfoEXT;*/
+        [StructLayout(LayoutKind.Sequential)]
+        public struct XrHandTrackerCreateInfoEXT
+        {
+            public XrStructureType stype;
+            public IntPtr next;
+            public XrHandEXT hand;
+            public XrHandJointSetEXT handJointSet;
+        }
 
         /*XrResult xrCreateHandTrackerEXT(
             XrSession                                   session,
             const XrHandTrackerCreateInfoEXT*           createInfo,
             XrHandTrackerEXT*                           handTracker);*/
-        internal delegate int Type_xrCreateHandTrackerEXT(ulong session, in XrHandTrackerCreateInfoEXT createInfo, out ulong tracker);
+        public delegate XrResult Type_xrCreateHandTrackerEXT(ulong session, in XrHandTrackerCreateInfoEXT createInfo, out ulong tracker);
+        Type_xrCreateHandTrackerEXT xrCreateHandTrackerEXT_;
+        public Type_xrCreateHandTrackerEXT XrCreateHandTrackerEXT => xrCreateHandTrackerEXT_;
 
-        /*
-            XrResult xrDestroyHandTrackerEXT(XrHandTrackerEXT handTracker);
-        */
-        internal delegate int Type_xrDestroyHandTrackerEXT(ulong tracker);
-
-        /*XrResult xrLocateHandJointsEXT(
-            XrHandTrackerEXT                            handTracker,
-            const XrHandJointsLocateInfoEXT*            locateInfo,
-            XrHandJointLocationsEXT*                    locations);*/
-        internal delegate int Type_xrLocateHandJointsEXT(ulong tracker, in XrHandJointsLocateInfoEXT locateInfoEXT, ref XrHandJointLocationsEXT locations);
+        /*XrResult xrDestroyHandTrackerEXT(XrHandTrackerEXT handTracker);*/
+        public delegate int Type_xrDestroyHandTrackerEXT(ulong tracker);
+        Type_xrDestroyHandTrackerEXT xrDestroyHandTrackerEXT_;
+        public Type_xrDestroyHandTrackerEXT XrDestroyHandTrackerEXT => xrDestroyHandTrackerEXT_;
 
         /*typedef struct XrHandJointsLocateInfoEXT {
             XrStructureType    type;
@@ -92,12 +107,29 @@ namespace openxr
             XrTime             time;
         } XrHandJointsLocateInfoEXT;*/
         [StructLayout(LayoutKind.Sequential)]
-        internal struct XrHandJointsLocateInfoEXT
+        public struct XrHandJointsLocateInfoEXT
         {
-            public int stype;
+            public XrStructureType stype;
             public IntPtr next;
             public ulong space;
             public long time;
+        };
+
+        /*typedef struct XrHandJointLocationsEXT {
+            XrStructureType            type;
+            void*                      next;
+            XrBool32                   isActive;
+            uint32_t                   jointCount;
+            XrHandJointLocationEXT*    jointLocations;
+        } XrHandJointLocationsEXT;*/
+        [StructLayout(LayoutKind.Sequential)]
+        public struct XrHandJointLocationsEXT
+        {
+            public XrStructureType stype;
+            public IntPtr next;
+            public int isActive;
+            public uint jointCount;
+            public IntPtr jointLocations;
         };
 
         /*
@@ -115,82 +147,20 @@ namespace openxr
             public XrPosef pose;
             public float radius; // joint radius
         }
-        static GCHandle pinnedJointArray;
-        /*typedef struct XrHandJointLocationsEXT {
-        XrStructureType            type;
-        void*                      next;
-        XrBool32                   isActive;
-        uint32_t                   jointCount;
-        XrHandJointLocationEXT*    jointLocations;
-    } XrHandJointLocationsEXT;*/
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct XrHandJointLocationsEXT
-        {
-            public int stype;
-            public IntPtr next;
-            public int isActive;
-            public uint jointCount;
-            public IntPtr jointLocations;
-        };
 
-        /*typedef struct XrHandTrackerCreateInfoEXT {
-            XrStructureType      type;
-            const void*          next;
-            XrHandEXT            hand;
-            XrHandJointSetEXT    handJointSet;
-        } XrHandTrackerCreateInfoEXT;*/
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct XrHandTrackerCreateInfoEXT
-        {
-            public int stype;
-            public IntPtr next;
-            public XrHandEXT hand;
-            public int handJointSet;
-        }
-
-        Type_xrCreateHandTrackerEXT xrCreateHandTrackerEXT_;
-        Type_xrDestroyHandTrackerEXT xrDestroyHandTrackerEXT_;
+        /*XrResult xrLocateHandJointsEXT(
+            XrHandTrackerEXT                            handTracker,
+            const XrHandJointsLocateInfoEXT*            locateInfo,
+            XrHandJointLocationsEXT*                    locations);*/
+        public delegate XrResult Type_xrLocateHandJointsEXT(ulong tracker, in XrHandJointsLocateInfoEXT locateInfoEXT, ref XrHandJointLocationsEXT locations);
         Type_xrLocateHandJointsEXT xrLocateHandJointsEXT_;
+        public Type_xrLocateHandJointsEXT XrLocateHandJointsEXT => xrLocateHandJointsEXT_;
 
         ulong instance_;
         ulong session_;
 
-        HandTrackingTracker leftTracker_;
-        HandTrackingTracker rightTracker_;
-
-        public event Action<HandTrackingTracker, HandTrackingTracker> SessionBegin;
+        public event Action<HandTrackingFeature, ulong> SessionBegin;
         public event Action SessionEnd;
-
-        bool TryCreateTracker(XrHandEXT hand, out HandTrackingTracker tracker)
-        {
-            var info = new XrHandTrackerCreateInfoEXT
-            {
-                stype = XR_TYPE_HAND_TRACKER_CREATE_INFO_EXT,
-                hand = hand,
-            };
-            ulong handle;
-            var retVal = xrCreateHandTrackerEXT_(session_, info, out handle);
-            if (retVal != 0)
-            {
-                Debug.Log("Couldn't open hand tracker: Error " + retVal);
-                tracker = default;
-                return false;
-            }
-
-            tracker = new HandTrackingTracker(handle, () => xrDestroyHandTrackerEXT_(handle), GetJoints);
-            return true;
-        }
-
-        bool GetJoints(ulong handle, XrHandJointsLocateInfoEXT info, ref XrHandJointLocationsEXT joints)
-        {
-            info.space = OpenXRFeature.GetCurrentAppSpace();
-            var retVal = xrLocateHandJointsEXT_(handle, info, ref joints);
-            if (retVal != 0)
-            {
-                Debug.LogWarning($"xrLocateHandJointsEXT: {handle}: {retVal}");
-            }
-            return retVal == 0;
-        }
 
         override protected bool OnInstanceCreate(ulong xrInstance)
         {
@@ -227,17 +197,9 @@ namespace openxr
             xrDestroyHandTrackerEXT_ = Marshal.GetDelegateForFunctionPointer<Type_xrDestroyHandTrackerEXT>(getAddr("xrDestroyHandTrackerEXT"));
             xrLocateHandJointsEXT_ = Marshal.GetDelegateForFunctionPointer<Type_xrLocateHandJointsEXT>(getAddr("xrLocateHandJointsEXT"));
 
-            if (!TryCreateTracker(XrHandEXT.XR_HAND_LEFT_EXT, out leftTracker_))
-            {
-                Debug.LogError("fail to create XrHandEXT.XR_HAND_LEFT_EXT");
-            }
-            if (!TryCreateTracker(XrHandEXT.XR_HAND_RIGHT_EXT, out rightTracker_))
-            {
-                Debug.LogError("fail to create XrHandEXT.XR_HAND_RIGHT_EXT");
-            }
             if (SessionBegin != null)
             {
-                SessionBegin(leftTracker_, rightTracker_);
+                SessionBegin(this, session_);
             }
         }
 
@@ -248,85 +210,12 @@ namespace openxr
             {
                 SessionEnd();
             }
-            if (leftTracker_ != null)
-            {
-                leftTracker_.Dispose();
-                leftTracker_ = null;
-            }
-            if (rightTracker_ != null)
-            {
-                rightTracker_.Dispose();
-                rightTracker_ = null;
-            }
             session_ = 0;
         }
 
         override protected void OnSessionDestroy(ulong xrSession)
         {
             Debug.Log("OnSessionDestroy");
-        }
-
-        void CloseHandTracker(ref ulong handle)
-        {
-            if (handle != 0)
-            {
-                xrDestroyHandTrackerEXT_(handle);
-                handle = 0;
-            }
-        }
-
-        public bool TryGetJoints(long frame_time, ulong handle, out Vector3[] positions, out Quaternion[] orientations, out float[] radius)
-        {
-            if (handle == 0)
-            {
-                positions = default;
-                orientations = default;
-                radius = default;
-                return false;
-            }
-
-            var allJoints = new XrHandJointLocationEXT[XR_HAND_JOINT_COUNT_EXT];
-            var jli = new XrHandJointsLocateInfoEXT
-            {
-                stype = XR_TYPE_HAND_JOINTS_LOCATE_INFO_EXT,
-                space = OpenXRFeature.GetCurrentAppSpace(),
-                time = frame_time,
-            };
-            using (var Pin = new ArrayPin(allJoints))
-            {
-                XrHandJointLocationsEXT joints = new XrHandJointLocationsEXT
-                {
-                    stype = XR_TYPE_HAND_JOINT_LOCATIONS_EXT,
-                    jointCount = (uint)allJoints.Length,
-                    jointLocations = Pin.Ptr,
-                };
-                int retVal = xrLocateHandJointsEXT_(handle, jli, ref joints);
-                if (retVal != 0)
-                {
-                    positions = default;
-                    orientations = default;
-                    radius = default;
-                    return false;
-                }
-            }
-
-            positions = new Vector3[allJoints.Length];
-            orientations = new Quaternion[allJoints.Length];
-            radius = new float[allJoints.Length];
-            for (int c = 0; c < allJoints.Length; c++)
-            {
-                positions[c] = allJoints[c].pose.position.ToUnity();
-                orientations[c] = allJoints[c].pose.orientation.ToUnity();
-                if ((allJoints[c].locationFlags & 0x3) == 0)
-                {
-                    radius[c] = 0f;
-                }
-                else
-                {
-                    radius[c] = allJoints[c].radius;
-                }
-            }
-            return true;
         }
     }
 }

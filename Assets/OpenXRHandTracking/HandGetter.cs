@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.OpenXR;
 
@@ -8,20 +7,17 @@ namespace openxr
 {
     public class HandGetter : MonoBehaviour
     {
-        public GameObject leftHand_;
-        public GameObject rightHand_;
-
         FrameTimeFeature frameTime_;
         HandTrackingFeature handTracking_;
         HandTrackingMeshFeature handTrackingMesh_;
 
-        HandTrackingTracker left_;
-        HandTrackingTracker right_;
+        HandTrackingTracker leftTracker_;
+        HandTrackingTracker rightTracker_;
 
         [SerializeField]
         public Material HandMaterial;
-        public GameObject leftMesh_;
-        public GameObject rightMesh_;
+        HandObject leftHand_;
+        HandObject rightHand_;
 
         static bool TryGetFeature<T>(out T feature) where T : UnityEngine.XR.OpenXR.Features.OpenXRFeature
         {
@@ -58,114 +54,76 @@ namespace openxr
             handTracking_.SessionEnd += HandEnd;
         }
 
-        void HandBegin(HandTrackingTracker left, HandTrackingTracker right)
+        void HandBegin(HandTrackingFeature feature, ulong session)
         {
-            left_ = left;
-            if (left_ == null)
+            leftTracker_ = HandTrackingTracker.CreateTracker(feature, session, HandTrackingFeature.XrHandEXT.XR_HAND_LEFT_EXT);
+            if (leftTracker_ == null)
             {
                 throw new ArgumentNullException();
             }
-            leftMesh_ = handTrackingMesh_.CreateHandMesh(left_, HandMaterial);
+            leftHand_ = new HandObject("left");
 
-            right_ = right;
-            if (right_ == null)
+            rightTracker_ = HandTrackingTracker.CreateTracker(feature, session, HandTrackingFeature.XrHandEXT.XR_HAND_RIGHT_EXT);
+            if (rightTracker_ == null)
             {
                 throw new ArgumentNullException();
             }
-            rightMesh_ = handTrackingMesh_.CreateHandMesh(right_, HandMaterial);
+            rightHand_ = new HandObject("right");
         }
 
         void HandEnd()
         {
             Debug.Log("HandEnd");
-            GameObject.Destroy(leftMesh_);
-            left_ = null;
             if (leftHand_ != null)
             {
-                GameObject.Destroy(leftHand_);
+                leftHand_.Dispose();
                 leftHand_ = null;
             }
+            if (leftTracker_ != null)
+            {
+                leftTracker_.Dispose();
+                leftTracker_ = null;
+            }
 
-            GameObject.Destroy(rightMesh_);
-            right_ = null;
             if (rightHand_ != null)
             {
-                GameObject.Destroy(rightHand_);
+                rightHand_.Dispose();
                 rightHand_ = null;
+            }
+            if (rightTracker_ != null)
+            {
+                rightTracker_.Dispose();
+                rightTracker_ = null;
             }
         }
 
         void Update()
         {
+            if (!frameTime_.enabled)
+            {
+                return;
+            }
             var time = frameTime_.FrameTime;
+            var space = frameTime_.CurrentAppSpace;
+            if (!handTracking_.enabled)
+            {
+                return;
+            }
 
-            //         {
-            //             var handle = handTracking_.GetHandle(HandTrackingFeature.Hand_Index.L);
-            //             if (handle != 0)
-            //             {
-            //                 if (leftHand_ == null)
-            //                 {
-            //                     {
-            //                         leftHand_ = handTrackingMesh_.CreateHandMesh(transform, HandMaterial, handle, "_lh");
-            //                         if (leftHand_ != null)
-            //                         {
-            //                             Debug.Log(leftHand_);
-            //                         }
-            //                     }
-            //                 }
-            //                 else
-            //                 {
-            //                     Transform[] bones = leftHand_.GetComponent<SkinnedMeshRenderer>().bones;
-            //                     float[] radius;
-            //                     Vector3[] positions;
-            //                     Quaternion[] orientations;
-            //                     if (handTracking_.TryGetJoints(frameTime_.FrameTime, handle, out positions, out orientations, out radius))
-            //                     {
-            //                         if (radius.Length == bones.Length && radius[0] > 0)
-            //                         {
-            //                             for (int c = 0; c < bones.Length; c++)
-            //                             {
-            //                                 bones[c].position = positions[c];
-            //                                 bones[c].rotation = orientations[c];
-            //                             }
-            //                         }
-            //                     }
-            //                 }
-            //             }
-            //         }
-
-            //         {
-            //             var handle = handTracking_.GetHandle(HandTrackingFeature.Hand_Index.R);
-            //             if (handle != 0)
-            //             {
-            //                 if (rightHand_ == null)
-            //                 {
-            //                     rightHand_ = handTrackingMesh_.CreateHandMesh(transform, HandMaterial, handle, "_rh");
-            //                     if (rightHand_ != null)
-            //                     {
-            //                         Debug.Log(rightHand_);
-            //                     }
-            //                 }
-            //                 else
-            //                 {
-            //                     float[] radius;
-            //                     Vector3[] positions;
-            //                     Quaternion[] orientations;
-            //                     if (handTracking_.TryGetJoints(frameTime_.FrameTime, handle, out positions, out orientations, out radius))
-            //                     {
-            //                         var bones = rightHand_.GetComponent<SkinnedMeshRenderer>().bones;
-            //                         if (radius.Length == bones.Length && radius[0] > 0)
-            //                         {
-            //                             for (int c = 0; c < bones.Length; c++)
-            //                             {
-            //                                 bones[c].position = positions[c];
-            //                                 bones[c].rotation = orientations[c];
-            //                             }
-            //                         }
-            //                     }
-            //                 }
-            //             }
-            //         }
+            if (leftTracker_ != null)
+            {
+                if (leftTracker_.TryGetJoints(time, space, out var joints))
+                {
+                    leftHand_.Update(joints);
+                }
+            }
+            if (rightTracker_ != null)
+            {
+                if (rightTracker_.TryGetJoints(time, space, out var joints))
+                {
+                    rightHand_.Update(joints);
+                }
+            }
         }
     }
 }

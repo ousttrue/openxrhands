@@ -6,46 +6,60 @@ namespace openxr
 {
     public class HandTrackingTracker : IDisposable
     {
+        HandTrackingFeature feature_;
         internal ulong handle_ = 0;
-        Action disposer_;
 
         XrHandJointLocationEXT[] allJoints_;
         ArrayPin pin_;
         XrHandJointsLocateInfoEXT jli_;
         XrHandJointLocationsEXT joints_;
 
-        internal delegate bool GetJoints(ulong handle, XrHandJointsLocateInfoEXT info, ref XrHandJointLocationsEXT joints);
-        GetJoints getJoints_;
-
-        internal HandTrackingTracker(ulong handle, Action disposer, GetJoints getJoints)
+        HandTrackingTracker(HandTrackingFeature feature, ulong handle)
         {
+            feature_ = feature;
             Debug.Log($"tracker: {handle}");
             handle_ = handle;
-            disposer_ = disposer;
-            getJoints_ = getJoints;
             allJoints_ = new XrHandJointLocationEXT[XR_HAND_JOINT_COUNT_EXT];
             pin_ = new ArrayPin(allJoints_);
 
             jli_ = new XrHandJointsLocateInfoEXT
             {
-                stype = XR_TYPE_HAND_JOINTS_LOCATE_INFO_EXT,
+                stype = XrStructureType.XR_TYPE_HAND_JOINTS_LOCATE_INFO_EXT,
             };
             joints_ = new XrHandJointLocationsEXT
             {
-                stype = XR_TYPE_HAND_JOINT_LOCATIONS_EXT,
+                stype = XrStructureType.XR_TYPE_HAND_JOINT_LOCATIONS_EXT,
                 jointCount = XR_HAND_JOINT_COUNT_EXT,
             };
+        }
+
+        public static HandTrackingTracker CreateTracker(HandTrackingFeature feature, ulong session, XrHandEXT hand)
+        {
+            var info = new XrHandTrackerCreateInfoEXT
+            {
+                stype = XrStructureType.XR_TYPE_HAND_TRACKER_CREATE_INFO_EXT,
+                hand = hand,
+            };
+            ulong handle;
+            var retVal = feature.XrCreateHandTrackerEXT(session, info, out handle);
+            if (retVal != 0)
+            {
+                Debug.Log("Couldn't open hand tracker: Error " + retVal);
+                return null;
+            }
+
+            return new HandTrackingTracker(feature, handle);
         }
 
         public void Dispose()
         {
             Debug.Log($"tracker.Dispose: {handle_}");
             pin_.Dispose();
-            disposer_();
+            feature_.XrDestroyHandTrackerEXT(handle_);
             handle_ = 0;
         }
 
-        public bool TryGetJoints(long frameTime, out XrHandJointLocationEXT[] joints)
+        public bool TryGetJoints(long frameTime, ulong currentAppSpace, out XrHandJointLocationEXT[] joints)
         {
             if (handle_ == 0)
             {
@@ -54,9 +68,12 @@ namespace openxr
             }
 
             jli_.time = frameTime;
+            jli_.space = currentAppSpace;
             joints_.jointLocations = pin_.Ptr;
-            if (!getJoints_(handle_, jli_, ref joints_))
+            var retVal = feature_.XrLocateHandJointsEXT(handle_, jli_, ref joints_);
+            if (retVal != XrResult.XR_SUCCESS)
             {
+                Debug.LogWarning($"xrLocateHandJointsEXT: {handle_}: {retVal}");
                 joints = default;
                 return false;
             }

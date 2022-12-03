@@ -117,5 +117,7 @@ namespace openxr
                 xrGetInstanceProcAddr);
             return GetCallback(new PFN_xrGetInstanceProcAddr(xrGetInstanceProcAddr_HOOK_STATIC));
         }
+
+        public ulong CurrentAppSpace => OpenXRFeature.GetCurrentAppSpace();
     }
 }
