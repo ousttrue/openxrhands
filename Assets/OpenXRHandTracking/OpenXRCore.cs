@@ -201,4 +201,36 @@ namespace openxr
         public XrVector4f orientation;
         public XrVector3f position;
     }
+
+    public enum XrReferenceSpaceType
+    {
+        XR_REFERENCE_SPACE_TYPE_VIEW = 1,
+        XR_REFERENCE_SPACE_TYPE_LOCAL = 2,
+        XR_REFERENCE_SPACE_TYPE_STAGE = 3,
+        // Provided by XR_MSFT_unbounded_reference_space
+        XR_REFERENCE_SPACE_TYPE_UNBOUNDED_MSFT = 1000038000,
+        // Provided by XR_VARJO_foveated_rendering
+        XR_REFERENCE_SPACE_TYPE_COMBINED_EYE_VARJO = 1000121000,
+        XR_REFERENCE_SPACE_TYPE_MAX_ENUM = 0x7FFFFFFF
+    }
+
+    /*typedef struct XrReferenceSpaceCreateInfo {
+        XrStructureType         type;
+        const void*             next;
+        XrReferenceSpaceType    referenceSpaceType;
+        XrPosef                 poseInReferenceSpace;
+    } XrReferenceSpaceCreateInfo;*/
+    [StructLayout(LayoutKind.Sequential)]
+    public struct XrReferenceSpaceCreateInfo
+    {
+        public XrStructureType type;
+        public IntPtr next;
+        public XrReferenceSpaceType referenceSpaceType;
+        public XrPosef poseInReferenceSpace;
+    };
+
+    public delegate XrResult Type_xrCreateReferenceSpace(
+        ulong session,
+        in XrReferenceSpaceCreateInfo createInfo,
+        ref ulong space);
 }

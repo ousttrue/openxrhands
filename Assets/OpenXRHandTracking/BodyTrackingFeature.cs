@@ -133,12 +133,15 @@ namespace openxr
         PFN_xrLocateBodyJointsFB xrLocateBodyJointsFB_;
         public PFN_xrLocateBodyJointsFB XrLocateBodyJointsFB => xrLocateBodyJointsFB_;
 
+        Type_xrCreateReferenceSpace xrCreateReferenceSpace_;
+        public Type_xrCreateReferenceSpace XrCreateReferenceSpace => xrCreateReferenceSpace_;
+
         ulong instance_;
         ulong session_;
 
         public event Action<BodyTrackingFeature, ulong> SessionBegin;
         public event Action SessionEnd;
-        ulong handle_;
+
 
         override protected bool OnInstanceCreate(ulong xrInstance)
         {
@@ -156,7 +159,6 @@ namespace openxr
 
         override protected void OnInstanceDestroy(ulong xrInstance)
         {
-            CloseHandTracker(ref handle_);
             instance_ = 0;
         }
 
@@ -175,19 +177,7 @@ namespace openxr
             xrCreateBodyTrackerFB_ = Marshal.GetDelegateForFunctionPointer<PFN_xrCreateBodyTrackerFB>(getAddr("xrCreateBodyTrackerFB"));
             xrDestroyBodyTrackerFB_ = Marshal.GetDelegateForFunctionPointer<PFN_xrDestroyBodyTrackerFB>(getAddr("xrDestroyBodyTrackerFB"));
             xrLocateBodyJointsFB_ = Marshal.GetDelegateForFunctionPointer<PFN_xrLocateBodyJointsFB>(getAddr("xrLocateBodyJointsFB"));
-
-            {
-                var create = new XrBodyTrackerCreateInfoFB
-                {
-                    type = XrStructureType.XR_TYPE_BODY_TRACKER_CREATE_INFO_FB
-                };
-                var retVal = xrCreateBodyTrackerFB_(session, create, out handle_);
-                if (retVal != 0)
-                {
-                    Debug.Log("Couldn't open body hand tracker: Error " + retVal);
-                    return;
-                }
-            }
+            xrCreateReferenceSpace_ = Marshal.GetDelegateForFunctionPointer<Type_xrCreateReferenceSpace>(getAddr("xrCreateReferenceSpace"));
 
             if (SessionBegin != null)
             {
@@ -202,67 +192,11 @@ namespace openxr
             {
                 SessionEnd();
             }
-            CloseHandTracker(ref handle_);
             session_ = 0;
         }
 
         override protected void OnSessionDestroy(ulong xrSession)
         {
-            CloseHandTracker(ref handle_);
-        }
-
-        void CloseHandTracker(ref ulong handle)
-        {
-            if (handle != 0)
-            {
-                xrDestroyBodyTrackerFB_(handle);
-                handle = 0;
-            }
-        }
-
-        public bool TryGetJoints(long frame_time, out Vector3[] positions, out Quaternion[] orientations)
-        {
-            if (handle_ == 0)
-            {
-                Debug.LogWarning("zero");
-                positions = default;
-                orientations = default;
-                return false;
-            }
-
-            var allJoints = new XrBodyJointLocationFB[XR_BODY_JOINT_COUNT_FB];
-            using (var pin = new ArrayPin(allJoints))
-            {
-                var jli = new XrBodyJointsLocateInfoFB
-                {
-                    type = XrStructureType.XR_TYPE_BODY_JOINTS_LOCATE_INFO_FB,
-                    baseSpace = OpenXRFeature.GetCurrentAppSpace(),
-                    time = frame_time,
-                };
-                var joints = new XrBodyJointLocationsFB
-                {
-                    type = XrStructureType.XR_TYPE_BODY_JOINT_LOCATIONS_FB,
-                    jointCount = (uint)allJoints.Length,
-                    jointLocations = pin.Ptr,
-                };
-                var retVal = xrLocateBodyJointsFB_(handle_, jli, ref joints);
-                if (retVal != 0)
-                {
-                    // Debug.Log($"false: {retVal}");
-                    positions = default;
-                    orientations = default;
-                    return false;
-                }
-            }
-
-            positions = new Vector3[allJoints.Length];
-            orientations = new Quaternion[allJoints.Length];
-            for (int c = 0; c < allJoints.Length; c++)
-            {
-                positions[c] = allJoints[c].pose.position.ToUnity();
-                orientations[c] = allJoints[c].pose.orientation.ToUnity();
-            }
-            return true;
         }
     }
 }
