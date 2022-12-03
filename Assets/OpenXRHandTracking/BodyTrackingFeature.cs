@@ -10,7 +10,7 @@ namespace openxr
 {
 #if UNITY_EDITOR
     [UnityEditor.XR.OpenXR.Features.OpenXRFeature(UiName = "Body tracking Extension",
-        BuildTargetGroups = new[] { 
+        BuildTargetGroups = new[] {
             UnityEditor.BuildTargetGroup.Standalone, UnityEditor.BuildTargetGroup.Android },
         Company = "ousttrue",
         Desc = "Enable body tracking in unity",
@@ -24,14 +24,8 @@ namespace openxr
         public const string featureId = "com.ousttrue.bodytracking";
         public const string xr_extension = "XR_FB_body_tracking";
         public const int XR_BODY_JOINT_COUNT_FB = 70;
-        public const int XR_TYPE_BODY_TRACKER_CREATE_INFO_FB = 1000076001;
-        public const int XR_TYPE_BODY_JOINTS_LOCATE_INFO_FB = 1000076002;
-        public const int XR_TYPE_BODY_JOINT_LOCATIONS_V1_FB = 1000076003;
-        public const int XR_TYPE_SYSTEM_BODY_TRACKING_PROPERTIES_FB = 1000076004;
-        public const int XR_TYPE_BODY_JOINT_LOCATIONS_FB = 1000076005;
-        public const int XR_TYPE_BODY_SKELETON_FB = 1000076006;
 
-        internal enum XrBodyJointSetFB
+        public enum XrBodyJointSetFB
         {
             XR_BODY_JOINT_SET_DEFAULT_FB = 0,
             XR_BODY_JOINT_SET_MAX_ENUM_FB = 0x7FFFFFFF
@@ -45,9 +39,9 @@ namespace openxr
         } XrBodyTrackerCreateInfoFB;
         */
         [StructLayout(LayoutKind.Sequential)]
-        internal struct XrBodyTrackerCreateInfoFB
+        public struct XrBodyTrackerCreateInfoFB
         {
-            public int type;
+            public XrStructureType type;
             public IntPtr next;
             public XrBodyJointSetFB bodyJointSet;
         }
@@ -58,14 +52,18 @@ namespace openxr
             const XrBodyTrackerCreateInfoFB* createInfo,
             XrBodyTrackerFB* bodyTracker);
         */
-        internal delegate int PFN_xrCreateBodyTrackerFB(ulong session,
+        public delegate XrResult PFN_xrCreateBodyTrackerFB(ulong session,
             in XrBodyTrackerCreateInfoFB createInfo,
             out ulong bodyTracker);
+        PFN_xrCreateBodyTrackerFB xrCreateBodyTrackerFB_;
+        public PFN_xrCreateBodyTrackerFB XrCreateBodyTrackerFB => xrCreateBodyTrackerFB_;
 
         /*
         XRAPI_ATTR XrResult XRAPI_CALL xrDestroyBodyTrackerFB(XrBodyTrackerFB bodyTracker);
         */
-        internal delegate int PFN_xrDestroyBodyTrackerFB(ulong bodyTracker);
+        public delegate XrResult PFN_xrDestroyBodyTrackerFB(ulong bodyTracker);
+        PFN_xrDestroyBodyTrackerFB xrDestroyBodyTrackerFB_;
+        public PFN_xrDestroyBodyTrackerFB XrDestroyBodyTrackerFB => xrDestroyBodyTrackerFB_;
 
         /*
         typedef struct XrBodyJointsLocateInfoFB {
@@ -76,9 +74,9 @@ namespace openxr
         } XrBodyJointsLocateInfoFB;
         */
         [StructLayout(LayoutKind.Sequential)]
-        internal struct XrBodyJointsLocateInfoFB
+        public struct XrBodyJointsLocateInfoFB
         {
-            public int type;
+            public XrStructureType type;
             public IntPtr next;
             public ulong baseSpace;
             public long time;
@@ -91,7 +89,7 @@ namespace openxr
         } XrBodyJointLocationFB;
         */
         [StructLayout(LayoutKind.Sequential)]
-        internal struct XrBodyJointLocationFB
+        public struct XrBodyJointLocationFB
         {
             public XrSpaceLocationFlags locationFlags;
             public XrPosef pose;
@@ -110,9 +108,9 @@ namespace openxr
         } XrBodyJointLocationsFB;
         */
         [StructLayout(LayoutKind.Sequential)]
-        internal struct XrBodyJointLocationsFB
+        public struct XrBodyJointLocationsFB
         {
-            public int type;
+            public XrStructureType type;
             public IntPtr next;
             public int isActive;
             public float confidence;
@@ -128,18 +126,17 @@ namespace openxr
             const XrBodyJointsLocateInfoFB* locateInfo,
             XrBodyJointLocationsFB* locations);
         */
-        internal delegate int PFN_xrLocateBodyJointsFB(
+        public delegate XrResult PFN_xrLocateBodyJointsFB(
             ulong bodyTracker,
             in XrBodyJointsLocateInfoFB locateInfo,
             ref XrBodyJointLocationsFB locations);
-
-        PFN_xrCreateBodyTrackerFB xrCreateBodyTrackerFB_ = null;
-        PFN_xrDestroyBodyTrackerFB xrDestroyBodyTrackerFB_ = null;
-        PFN_xrLocateBodyJointsFB xrLocateBodyJointsFB_ = null;
+        PFN_xrLocateBodyJointsFB xrLocateBodyJointsFB_;
+        public PFN_xrLocateBodyJointsFB XrLocateBodyJointsFB => xrLocateBodyJointsFB_;
 
         ulong instance_;
         ulong session_;
-        public event Action SessionBegin;
+
+        public event Action<BodyTrackingFeature, ulong> SessionBegin;
         public event Action SessionEnd;
         ulong handle_;
 
@@ -182,7 +179,7 @@ namespace openxr
             {
                 var create = new XrBodyTrackerCreateInfoFB
                 {
-                    type = XR_TYPE_BODY_TRACKER_CREATE_INFO_FB
+                    type = XrStructureType.XR_TYPE_BODY_TRACKER_CREATE_INFO_FB
                 };
                 var retVal = xrCreateBodyTrackerFB_(session, create, out handle_);
                 if (retVal != 0)
@@ -194,13 +191,13 @@ namespace openxr
 
             if (SessionBegin != null)
             {
-                SessionBegin();
+                SessionBegin(this, session_);
             }
         }
 
         override protected void OnSessionEnd(ulong session)
         {
-            Debug.Log($"OnSessionEnd: {instance_}.{session_}");
+            Debug.Log($"{featureId}: OnSessionEnd: {instance_}.{session_}");
             if (SessionEnd != null)
             {
                 SessionEnd();
@@ -211,7 +208,6 @@ namespace openxr
 
         override protected void OnSessionDestroy(ulong xrSession)
         {
-            Debug.Log("OnSessionDestroy");
             CloseHandTracker(ref handle_);
         }
 
@@ -239,17 +235,17 @@ namespace openxr
             {
                 var jli = new XrBodyJointsLocateInfoFB
                 {
-                    type = XR_TYPE_BODY_JOINTS_LOCATE_INFO_FB,
+                    type = XrStructureType.XR_TYPE_BODY_JOINTS_LOCATE_INFO_FB,
                     baseSpace = OpenXRFeature.GetCurrentAppSpace(),
                     time = frame_time,
                 };
                 var joints = new XrBodyJointLocationsFB
                 {
-                    type = XR_TYPE_BODY_JOINT_LOCATIONS_FB,
+                    type = XrStructureType.XR_TYPE_BODY_JOINT_LOCATIONS_FB,
                     jointCount = (uint)allJoints.Length,
                     jointLocations = pin.Ptr,
                 };
-                int retVal = xrLocateBodyJointsFB_(handle_, jli, ref joints);
+                var retVal = xrLocateBodyJointsFB_(handle_, jli, ref joints);
                 if (retVal != 0)
                 {
                     // Debug.Log($"false: {retVal}");
