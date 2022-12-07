@@ -144,7 +144,7 @@ namespace openxr
             return renderer;
         }
 
-        public static SkinnedMeshRenderer CreateHandMesh(HandTrackingMeshFeature feature, HandTrackingTracker tracker, Transform[] bones, Material mat)
+        public static SkinnedMeshRenderer CreateHandMesh(HandTrackingMeshFeature feature, HandTracker tracker, Transform[] bones, Material mat)
         {
             var xrMesh = new HandTrackingMeshFeature.XrHandTrackingMeshFB
             {
@@ -164,7 +164,7 @@ namespace openxr
                 (int)xrMesh.jointCountOutput, (int)xrMesh.vertexCountOutput, (int)xrMesh.indexCountOutput);
         }
 
-        static SkinnedMeshRenderer CreateHandMesh(HandTrackingMeshFeature feature, HandTrackingTracker tracker, Transform[] bones, Material mat,
+        static SkinnedMeshRenderer CreateHandMesh(HandTrackingMeshFeature feature, HandTracker tracker, Transform[] bones, Material mat,
             int jointCount, int vertexCount, int indexCount)
         {
             // get actual mesh

@@ -4,7 +4,7 @@ using static openxr.HandTrackingFeature;
 
 namespace openxr
 {
-    public class HandTrackingTracker : IDisposable
+    public class HandTracker : IDisposable
     {
         HandTrackingFeature feature_;
         internal ulong handle_ = 0;
@@ -14,7 +14,7 @@ namespace openxr
         XrHandJointsLocateInfoEXT jli_;
         XrHandJointLocationsEXT joints_;
 
-        HandTrackingTracker(HandTrackingFeature feature, ulong handle)
+        HandTracker(HandTrackingFeature feature, ulong handle)
         {
             feature_ = feature;
             Debug.Log($"tracker: {handle}");
@@ -33,7 +33,7 @@ namespace openxr
             };
         }
 
-        public static HandTrackingTracker CreateTracker(HandTrackingFeature feature, ulong session, XrHandEXT hand)
+        public static HandTracker CreateTracker(HandTrackingFeature feature, ulong session, XrHandEXT hand)
         {
             var info = new XrHandTrackerCreateInfoEXT
             {
@@ -48,7 +48,7 @@ namespace openxr
                 return null;
             }
 
-            return new HandTrackingTracker(feature, handle);
+            return new HandTracker(feature, handle);
         }
 
         public void Dispose()

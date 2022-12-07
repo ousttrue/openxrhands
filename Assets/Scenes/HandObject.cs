@@ -54,7 +54,7 @@ namespace openxr
             }
         }
 
-        public void SetMesh(HandTrackingMeshFeature feature, HandTrackingTracker tracker, Material mat)
+        public void SetMesh(HandTrackingMeshFeature feature, HandTracker tracker, Material mat)
         {
             if (mesh_ != null)
             {

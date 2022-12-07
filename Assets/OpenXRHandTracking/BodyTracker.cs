@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace openxr
 {
-    public class BodyTrackingTracker : IDisposable
+    public class BodyTracker : IDisposable
     {
         BodyTrackingFeature feature_;
         ulong handle_;
@@ -16,7 +16,7 @@ namespace openxr
 
         public event Action<BodyTrackingFeature.XrBodySkeletonJointFB[]> SkeletonUpdated;
 
-        public BodyTrackingTracker(BodyTrackingFeature feature, ulong handle)
+        public BodyTracker(BodyTrackingFeature feature, ulong handle)
         {
             feature_ = feature;
             handle_ = handle;
@@ -26,7 +26,7 @@ namespace openxr
             skletonPin_ = new ArrayPin(skeletonJoints_);
         }
 
-        public static BodyTrackingTracker CreateTracker(BodyTrackingFeature feature, ulong session)
+        public static BodyTracker CreateTracker(BodyTrackingFeature feature, ulong session)
         {
             var create = new BodyTrackingFeature.XrBodyTrackerCreateInfoFB
             {
@@ -41,7 +41,7 @@ namespace openxr
                 return null;
             }
 
-            return new BodyTrackingTracker(feature, handle);
+            return new BodyTracker(feature, handle);
         }
 
         public void Dispose()

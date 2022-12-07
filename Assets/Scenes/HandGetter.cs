@@ -11,8 +11,8 @@ namespace openxr
         HandTrackingFeature handTracking_;
         HandTrackingMeshFeature handTrackingMesh_;
 
-        HandTrackingTracker leftTracker_;
-        HandTrackingTracker rightTracker_;
+        HandTracker leftTracker_;
+        HandTracker rightTracker_;
 
         [SerializeField]
         public Material HandMaterial;
@@ -56,14 +56,14 @@ namespace openxr
 
         void HandBegin(HandTrackingFeature feature, ulong session)
         {
-            leftTracker_ = HandTrackingTracker.CreateTracker(feature, session, HandTrackingFeature.XrHandEXT.XR_HAND_LEFT_EXT);
+            leftTracker_ = HandTracker.CreateTracker(feature, session, HandTrackingFeature.XrHandEXT.XR_HAND_LEFT_EXT);
             if (leftTracker_ == null)
             {
                 throw new ArgumentNullException();
             }
             leftHand_ = new HandObject("left");
 
-            rightTracker_ = HandTrackingTracker.CreateTracker(feature, session, HandTrackingFeature.XrHandEXT.XR_HAND_RIGHT_EXT);
+            rightTracker_ = HandTracker.CreateTracker(feature, session, HandTrackingFeature.XrHandEXT.XR_HAND_RIGHT_EXT);
             if (rightTracker_ == null)
             {
                 throw new ArgumentNullException();

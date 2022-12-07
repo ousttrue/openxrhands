@@ -11,7 +11,7 @@ namespace openxr
         BodyTrackingFeature bodyTracking_;
 
         ulong space_;
-        BodyTrackingTracker tracker_;
+        BodyTracker tracker_;
         BodyObject body_;
 
         static bool TryGetFeature<T>(out T feature) where T : UnityEngine.XR.OpenXR.Features.OpenXRFeature
@@ -69,7 +69,7 @@ namespace openxr
             var retValue = feature.XrCreateReferenceSpace(session, info, ref space_);
             Debug.Log($"XrCreateReferenceSpace: {retValue}");
 
-            tracker_ = BodyTrackingTracker.CreateTracker(feature, session);
+            tracker_ = BodyTracker.CreateTracker(feature, session);
             body_ = new BodyObject();
 
             tracker_.SkeletonUpdated += (skeletonJoints) =>
