@@ -8,22 +8,25 @@ namespace openxr
     {
         GameObject root_;
         Transform[] transforms_;
+        Quaternion[] initialRotations_;
 
         public BodyObject()
         {
             root_ = new GameObject("body");
 
-            if (transforms_ == null)
+            transforms_ = new Transform[(int)BodyTrackingFeature.XrBodyJointFB.XR_BODY_JOINT_COUNT_FB]; // 70
+            initialRotations_ = new Quaternion[(int)BodyTrackingFeature.XrBodyJointFB.XR_BODY_JOINT_COUNT_FB];
+
+            for (int i = 0; i < transforms_.Length; ++i)
             {
-                transforms_ = new Transform[(int)BodyTrackingFeature.XrBodyJointFB.XR_BODY_JOINT_COUNT_FB]; // 70
-                for (int i = 0; i < transforms_.Length; ++i)
-                {
-                    var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    go.name = $"{(BodyTrackingFeature.XrBodyJointFB)i}";
-                    go.transform.localScale = new Vector3(0.02f, 0.02f, 0.02f);
-                    go.transform.SetParent(root_.transform);
-                    transforms_[i] = go.transform;
-                }
+                var go = new GameObject();
+                go.name = $"{(BodyTrackingFeature.XrBodyJointFB)i}";
+                go.transform.SetParent(root_.transform);
+                transforms_[i] = go.transform;
+
+                var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                cube.transform.localScale = new Vector3(0.02f, 0.02f, 0.02f);
+                cube.transform.SetParent(go.transform);
             }
 
         }
@@ -40,19 +43,6 @@ namespace openxr
             GameObject.Destroy(root_);
         }
 
-        uint skeletonChangeCount_;
-
-        public void Update(BodyTrackingFeature.XrBodyJointLocationFB[] joints)
-        {
-            for (int i = 0; i < joints.Length; ++i)
-            {
-                var src = joints[i];
-                var dst = transforms_[i];
-                // dst.localPosition = src.pose.position.ToUnity();
-                dst.localRotation = src.pose.orientation.ToUnity();
-            }
-        }
-
         public void UpdateTPose(BodyTrackingFeature.XrBodySkeletonJointFB[] joints)
         {
             for (int i = 0; i < joints.Length; ++i)
@@ -61,9 +51,28 @@ namespace openxr
                 var dst = transforms_[i];
                 dst.position = src.pose.position.ToUnity();
                 dst.rotation = src.pose.orientation.ToUnity();
-                if (src.parentJoint >= 0 && src.parentJoint < transforms_.Length)
+                // if (src.parentJoint >= 0 && src.parentJoint < transforms_.Length)
+                // {
+                //     dst.SetParent(transforms_[src.parentJoint], true);
+                // }
+                initialRotations_[i] = dst.rotation;
+            }
+        }
+
+        public void Update(BodyTrackingFeature.XrBodyJointLocationFB[] joints)
+        {
+            for (int i = 0; i < joints.Length; ++i)
+            {
+
+                var src = joints[i];
+                var dst = transforms_[i];
+                if (src.locationFlags.HasFlag(XrSpaceLocationFlags.XR_SPACE_LOCATION_POSITION_VALID_BIT))
                 {
-                    dst.SetParent(transforms_[src.parentJoint], true);
+                    dst.position = src.pose.position.ToUnity();
+                }
+                if (src.locationFlags.HasFlag(XrSpaceLocationFlags.XR_SPACE_LOCATION_ORIENTATION_VALID_BIT))
+                {
+                    dst.rotation = src.pose.orientation.ToUnity();
                 }
             }
         }

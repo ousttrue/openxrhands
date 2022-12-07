@@ -125,6 +125,7 @@ namespace openxr
         XR_RESULT_MAX_ENUM = 0x7FFFFFFF
     }
 
+    [Flags]
     public enum XrSpaceLocationFlags
     {
         XR_SPACE_LOCATION_ORIENTATION_VALID_BIT = 0x00000001,

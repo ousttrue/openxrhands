@@ -92,8 +92,8 @@ namespace openxr
                 if (locations.skeletonChangedCount != skeletonChangeCount_)
                 {
                     skeletonChangeCount_ = locations.skeletonChangedCount;
-                    // retrieve the updated skeleton                    
 
+                    // retrieve the updated skeleton                    
                     var skeletonInfo = new BodyTrackingFeature.XrBodySkeletonFB
                     {
                         type = XrStructureType.XR_TYPE_BODY_SKELETON_FB,

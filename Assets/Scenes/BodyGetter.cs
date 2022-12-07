@@ -74,7 +74,7 @@ namespace openxr
 
             tracker_.SkeletonUpdated += (skeletonJoints) =>
             {
-                body_.UpdateTPose(skeletonJoints);
+                // body_.UpdateTPose(skeletonJoints);
             };
         }
 
