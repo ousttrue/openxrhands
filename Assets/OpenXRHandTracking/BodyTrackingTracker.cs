@@ -9,12 +9,21 @@ namespace openxr
         ulong handle_;
         BodyTrackingFeature.XrBodyJointLocationFB[] joints_;
         ArrayPin pin_;
+
+        BodyTrackingFeature.XrBodySkeletonJointFB[] skeletonJoints_;
+        ArrayPin skletonPin_;
+        uint skeletonChangeCount_;
+
+        public event Action<BodyTrackingFeature.XrBodySkeletonJointFB[]> SkeletonUpdated;
+
         public BodyTrackingTracker(BodyTrackingFeature feature, ulong handle)
         {
             feature_ = feature;
             handle_ = handle;
             joints_ = new BodyTrackingFeature.XrBodyJointLocationFB[BodyTrackingFeature.XR_BODY_JOINT_COUNT_FB];
             pin_ = new ArrayPin(joints_);
+            skeletonJoints_ = new BodyTrackingFeature.XrBodySkeletonJointFB[BodyTrackingFeature.XR_BODY_JOINT_COUNT_FB];
+            skletonPin_ = new ArrayPin(skeletonJoints_);
         }
 
         public static BodyTrackingTracker CreateTracker(BodyTrackingFeature feature, ulong session)
@@ -37,6 +46,8 @@ namespace openxr
 
         public void Dispose()
         {
+            skletonPin_.Dispose();
+            skletonPin_ = null;
             pin_.Dispose();
             pin_ = null;
             if (handle_ != 0)
@@ -61,19 +72,48 @@ namespace openxr
                 baseSpace = space,
                 time = frame_time,
             };
-            var joints = new BodyTrackingFeature.XrBodyJointLocationsFB
+            var locations = new BodyTrackingFeature.XrBodyJointLocationsFB
             {
                 type = XrStructureType.XR_TYPE_BODY_JOINT_LOCATIONS_FB,
                 jointCount = (uint)joints_.Length,
                 jointLocations = pin_.Ptr,
                 time = frame_time,
             };
-            var retVal = feature_.XrLocateBodyJointsFB(handle_, jli, ref joints);
+            var retVal = feature_.XrLocateBodyJointsFB(handle_, jli, ref locations);
             if (retVal != 0)
             {
                 Debug.LogError($"XrLocateBodyJointsFB: {retVal}");
                 values = default;
                 return false;
+            }
+
+            if (locations.isActive != 0)
+            {
+                if (locations.skeletonChangedCount != skeletonChangeCount_)
+                {
+                    skeletonChangeCount_ = locations.skeletonChangedCount;
+                    // retrieve the updated skeleton                    
+
+                    var skeletonInfo = new BodyTrackingFeature.XrBodySkeletonFB
+                    {
+                        type = XrStructureType.XR_TYPE_BODY_SKELETON_FB,
+                        jointCount = (uint)skeletonJoints_.Length,
+                        joints = skletonPin_.Ptr,
+                    };
+                    retVal = feature_.XrGetBodySkeletonFB(handle_, ref skeletonInfo);
+                    if (retVal == XrResult.XR_SUCCESS)
+                    {
+                        Debug.Log($"XrGetBodySkeletonFB: {retVal}");
+                        if (SkeletonUpdated != null)
+                        {
+                            SkeletonUpdated(skeletonJoints_);
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"XrGetBodySkeletonFB: {retVal}");
+                    }
+                }
             }
 
             values = joints_;

@@ -211,6 +211,42 @@ namespace openxr
         PFN_xrLocateBodyJointsFB xrLocateBodyJointsFB_;
         public PFN_xrLocateBodyJointsFB XrLocateBodyJointsFB => xrLocateBodyJointsFB_;
 
+        /*
+        typedef struct XrBodySkeletonJointFB {
+            int32_t joint;
+            int32_t parentJoint;
+            XrPosef pose;
+        } XrBodySkeletonJointFB;
+        */
+        [StructLayout(LayoutKind.Sequential)]
+        public struct XrBodySkeletonJointFB
+        {
+            public int joint;
+            public int parentJoint;
+            public XrPosef pose;
+        };
+
+        /*
+        typedef struct XrBodySkeletonFB {
+            XrStructureType type;
+            void* XR_MAY_ALIAS next;
+            uint32_t jointCount;
+            XrBodySkeletonJointFB* joints;
+        } XrBodySkeletonFB;
+        */
+        [StructLayout(LayoutKind.Sequential)]
+        public struct XrBodySkeletonFB
+        {
+            public XrStructureType type;
+            public IntPtr next;
+            public uint jointCount;
+            public IntPtr joints;
+        };
+
+        public delegate XrResult PFN_xrGetBodySkeletonFB(ulong bodyTracker, ref XrBodySkeletonFB skeleton);
+        PFN_xrGetBodySkeletonFB xrGetBodySkeletonFB_;
+        public PFN_xrGetBodySkeletonFB XrGetBodySkeletonFB => xrGetBodySkeletonFB_;
+
         Type_xrCreateReferenceSpace xrCreateReferenceSpace_;
         public Type_xrCreateReferenceSpace XrCreateReferenceSpace => xrCreateReferenceSpace_;
 
@@ -255,6 +291,8 @@ namespace openxr
             xrCreateBodyTrackerFB_ = Marshal.GetDelegateForFunctionPointer<PFN_xrCreateBodyTrackerFB>(getAddr("xrCreateBodyTrackerFB"));
             xrDestroyBodyTrackerFB_ = Marshal.GetDelegateForFunctionPointer<PFN_xrDestroyBodyTrackerFB>(getAddr("xrDestroyBodyTrackerFB"));
             xrLocateBodyJointsFB_ = Marshal.GetDelegateForFunctionPointer<PFN_xrLocateBodyJointsFB>(getAddr("xrLocateBodyJointsFB"));
+            xrGetBodySkeletonFB_ = Marshal.GetDelegateForFunctionPointer<PFN_xrGetBodySkeletonFB>(getAddr("xrGetBodySkeletonFB"));
+
             xrCreateReferenceSpace_ = Marshal.GetDelegateForFunctionPointer<Type_xrCreateReferenceSpace>(getAddr("xrCreateReferenceSpace"));
 
             if (SessionBegin != null)

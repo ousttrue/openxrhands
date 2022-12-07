@@ -26,6 +26,7 @@ namespace openxr
             GameObject.Destroy(root_);
         }
 
+        uint skeletonChangeCount_;
         public void Update(BodyTrackingFeature.XrBodyJointLocationFB[] joints)
         {
             if (transforms_ == null)
@@ -47,9 +48,14 @@ namespace openxr
             {
                 var src = joints[i];
                 var dst = transforms_[i];
-                dst.localPosition = src.pose.position.ToUnity();
+                // dst.localPosition = src.pose.position.ToUnity();
                 dst.localRotation = src.pose.orientation.ToUnity();
             }
+        }
+
+        public void UpdateTPose(BodyTrackingFeature.XrBodySkeletonJointFB[] joints)
+        {
+
         }
     }
 }

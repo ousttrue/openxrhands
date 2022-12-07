@@ -71,6 +71,11 @@ namespace openxr
 
             tracker_ = BodyTrackingTracker.CreateTracker(feature, session);
             body_ = new BodyObject();
+
+            tracker_.SkeletonUpdated += (skeletonJoints) =>
+            {
+                body_.UpdateTPose(skeletonJoints);
+            };
         }
 
         void BodyEnd()
