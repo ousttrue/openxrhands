@@ -12,6 +12,20 @@ namespace openxr
         public BodyObject()
         {
             root_ = new GameObject("body");
+
+            if (transforms_ == null)
+            {
+                transforms_ = new Transform[(int)BodyTrackingFeature.XrBodyJointFB.XR_BODY_JOINT_COUNT_FB]; // 70
+                for (int i = 0; i < transforms_.Length; ++i)
+                {
+                    var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    go.name = $"{(BodyTrackingFeature.XrBodyJointFB)i}";
+                    go.transform.localScale = new Vector3(0.02f, 0.02f, 0.02f);
+                    go.transform.SetParent(root_.transform);
+                    transforms_[i] = go.transform;
+                }
+            }
+
         }
 
         public void Dispose()
@@ -27,23 +41,9 @@ namespace openxr
         }
 
         uint skeletonChangeCount_;
+
         public void Update(BodyTrackingFeature.XrBodyJointLocationFB[] joints)
         {
-            if (transforms_ == null)
-            {
-                transforms_ = joints.Select((x, i) =>
-                {
-                    var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    go.name = $"{(BodyTrackingFeature.XrBodyJointFB)i}";
-                    go.transform.localScale = new Vector3(0.02f, 0.02f, 0.02f);
-                    return go.transform;
-                }).ToArray();
-                foreach (var t in transforms_)
-                {
-                    t.SetParent(root_.transform);
-                }
-            }
-
             for (int i = 0; i < joints.Length; ++i)
             {
                 var src = joints[i];
@@ -55,7 +55,17 @@ namespace openxr
 
         public void UpdateTPose(BodyTrackingFeature.XrBodySkeletonJointFB[] joints)
         {
-
+            for (int i = 0; i < joints.Length; ++i)
+            {
+                var src = joints[i];
+                var dst = transforms_[i];
+                dst.position = src.pose.position.ToUnity();
+                dst.rotation = src.pose.orientation.ToUnity();
+                if (src.parentJoint >= 0 && src.parentJoint < transforms_.Length)
+                {
+                    dst.SetParent(transforms_[src.parentJoint], true);
+                }
+            }
         }
     }
 }
