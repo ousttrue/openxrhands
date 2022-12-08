@@ -463,7 +463,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 57f38318ae252ab4394c743fdbdaf505, type: 3}
   m_Name: HandTrackingFeature Standalone
   m_EditorClassIdentifier: 
-  m_enabled: 0
+  m_enabled: 1
   nameUi: Hand tracking Extension
   version: 0.0.1
   featureIdInternal: com.joemarshall.handtracking
@@ -638,7 +638,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a4c764c9991e9a84daaad8b3156ebda8, type: 3}
   m_Name: HandTrackingMeshFeature Standalone
   m_EditorClassIdentifier: 
-  m_enabled: 0
+  m_enabled: 1
   nameUi: Hand tracking mesh Extension
   version: 0.0.1
   featureIdInternal: com.joemarshall.handtracking_mesh

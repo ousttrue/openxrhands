@@ -143,7 +143,7 @@ namespace openxr
         public struct XrHandJointLocationEXT
         {
             // TODO check size of enums and types
-            public ulong locationFlags;
+            public XrSpaceLocationFlags locationFlags;
             public XrPosef pose;
             public float radius; // joint radius
         }

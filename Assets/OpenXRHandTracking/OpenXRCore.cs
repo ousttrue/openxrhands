@@ -126,7 +126,7 @@ namespace openxr
     }
 
     [Flags]
-    public enum XrSpaceLocationFlags
+    public enum XrSpaceLocationFlags : Int64
     {
         XR_SPACE_LOCATION_ORIENTATION_VALID_BIT = 0x00000001,
         XR_SPACE_LOCATION_POSITION_VALID_BIT = 0x00000002,
@@ -166,6 +166,11 @@ namespace openxr
         public float y;
         public float z;
 
+        public override string ToString()
+        {
+            return $"[{x:0.00}, {y:0.00}, {z:0.00}]";
+        }
+
         public Vector3 ToUnity()
         {
             return new Vector3(x, y, -z);
@@ -186,6 +191,11 @@ namespace openxr
         public float z;
         public float w;
 
+        public override string ToString()
+        {
+            return $"[{x:0.00}, {y:0.00}, {z:0.00}, {w:0.00}]";
+        }
+
         public Quaternion ToUnity()
         {
             return new Quaternion(x, y, -z, -w);
@@ -201,6 +211,11 @@ namespace openxr
     {
         public XrVector4f orientation;
         public XrVector3f position;
+
+        public override string ToString()
+        {
+            return $"<{orientation} {position}>";
+        }
     }
 
     public enum XrReferenceSpaceType

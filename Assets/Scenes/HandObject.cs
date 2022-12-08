@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using UnityEngine;
 
 namespace openxr
@@ -13,16 +12,22 @@ namespace openxr
         public HandObject(string name)
         {
             root_ = new GameObject(name);
+
+            transforms_ = new Transform[HandTrackingFeature.XR_HAND_JOINT_COUNT_EXT];
+            for (int i = 0; i < transforms_.Length; ++i)
+            {
+                var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                go.name = $"{(HandTrackingFeature.XrHandJointEXT)i}";
+                go.transform.SetParent(root_.transform);
+                transforms_[i] = go.transform;
+            }
         }
 
         public void Dispose()
         {
-            if (transforms_ != null)
+            foreach (var t in transforms_)
             {
-                foreach (var t in transforms_)
-                {
-                    GameObject.Destroy(t.gameObject);
-                }
+                GameObject.Destroy(t.gameObject);
             }
             GameObject.Destroy(root_);
             GameObject.Destroy(mesh_);
@@ -30,20 +35,6 @@ namespace openxr
 
         public void Update(HandTrackingFeature.XrHandJointLocationEXT[] joints)
         {
-            if (transforms_ == null)
-            {
-                transforms_ = joints.Select((x, i) =>
-                {
-                    var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    go.name = $"{(HandTrackingFeature.XrHandJointEXT)i}";
-                    return go.transform;
-                }).ToArray();
-                foreach (var t in transforms_)
-                {
-                    t.SetParent(root_.transform);
-                }
-            }
-
             for (int i = 0; i < joints.Length; ++i)
             {
                 var src = joints[i];
